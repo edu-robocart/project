@@ -1,0 +1,2526 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>ROBOCART</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Mitr:wght@400;500;600&family=Noto+Sans+Thai+Looped:wght@400;500;600&family=Prompt:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<style>
+/* Layout: three screens (home / robot / report) switched from a floating pill menu. Mars-sunset world, hologram stage on the robot screen. */
+:root{
+  --plum:#25102f;
+  --plum-2:#34163f;
+  --plum-3:#170a1f;
+  --magenta:#a42f6d;
+  --coral:#ff6b53;
+  --amber:#ffc24d;
+  --amber-deep:#c98c22;
+  --rust:#b8401e;
+  --cream:#fff4e4;
+  --ink:#2a1030;
+  --holo:#5ff0ff;
+  --lv1:#ffb703;--lv2:#10b981;--lv3:#3b82f6;
+  --line:rgba(255,244,228,.16);
+  --font-display:"Mitr","Noto Sans Thai Looped",system-ui,sans-serif;
+  --font-body:"Noto Sans Thai Looped","Mitr",system-ui,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:90px}
+body{background:var(--plum);color:var(--cream);font-family:var(--font-body);font-size:17px;line-height:1.75;overflow-x:hidden}
+h1,h2,h3,h4{font-family:var(--font-display);font-weight:500;line-height:1.3;margin:0;text-wrap:balance}
+p{margin:0}
+a{color:inherit}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--amber);outline-offset:3px;border-radius:8px}
+.wrap{max-width:1180px;margin-inline:auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.mono{font-family:var(--font-mono);letter-spacing:.06em}
+.tag{font-family:var(--font-mono);font-size:12.5px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+
+
+/* ---------- floating nav ---------- */
+.nav{position:fixed;left:0;right:0;top:0;z-index:70;pointer-events:none;padding-top:calc(12px + env(safe-area-inset-top,0px))}
+.nav .wrap{max-width:1420px}
+.nav-in{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.nav-in>*{pointer-events:auto}
+.logo-btn{flex:none;height:50px;padding:9px 20px;border:0;border-radius:99px;cursor:pointer;background:linear-gradient(180deg,#ffd166,#ffb703);box-shadow:0 8px 24px rgba(0,0,0,.28),inset 0 0 0 1px rgba(255,255,255,.45),inset 0 -3px 0 rgba(201,140,34,.55);transition:transform .15s,box-shadow .15s}
+.logo-btn:hover{transform:translateY(-1px) scale(1.03);box-shadow:0 12px 28px rgba(0,0,0,.32),inset 0 0 0 1px rgba(255,255,255,.55),inset 0 -3px 0 rgba(201,140,34,.55)}
+.logo-btn img{display:block;height:100%;width:auto;filter:drop-shadow(0 2px 0 rgba(150,90,0,.55)) drop-shadow(0 3px 6px rgba(120,60,0,.35))}
+.sq{width:44px;height:44px;border-radius:14px;border:0;cursor:pointer;display:grid;place-items:center;background:var(--cream);color:var(--ink);box-shadow:0 6px 18px rgba(0,0,0,.25);transition:transform .15s}
+.sq:hover{transform:scale(1.06)}
+.sq svg{width:20px;height:20px}
+.pill{display:flex;gap:2px;padding:5px;min-width:0;max-width:100%;overflow-x:auto;scrollbar-width:none;border-radius:99px;background:rgba(37,16,47,.8);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 8px 24px rgba(0,0,0,.28),inset 0 0 0 1px var(--line)}
+.pill::-webkit-scrollbar{display:none}
+.pill button{flex:none;white-space:nowrap;border:0;background:transparent;cursor:pointer;font-family:var(--font-display);font-size:14.5px;padding:8px 15px;border-radius:99px;color:rgba(255,244,228,.8);transition:background .2s,color .2s}
+.pill button:hover{color:#fff;background:rgba(255,244,228,.1)}
+.pill button[aria-current="page"]{background:var(--amber);color:var(--ink)}
+.nav-r{display:flex;gap:8px;align-items:center;flex:none}
+.cta-pill{font-family:var(--font-display);font-size:14px;text-decoration:none;padding:10px 18px;border-radius:99px;background:var(--coral);color:#fff;box-shadow:0 6px 18px rgba(255,107,83,.4);white-space:nowrap;transition:transform .15s}
+.cta-pill:hover{transform:translateY(-2px)}
+#snd[aria-pressed="false"] .on{display:none}
+#snd[aria-pressed="true"] .off{display:none}
+.progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--coral),var(--amber));z-index:80}
+.ring{position:fixed;left:0;top:0;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;border:2px solid rgba(255,194,77,.7);pointer-events:none;z-index:90;opacity:0;transition:width .2s,height .2s,margin .2s,opacity .3s,background .2s}
+.ring.show{opacity:1}
+.ring.big{width:56px;height:56px;margin:-28px 0 0 -28px;background:rgba(255,194,77,.14)}
+
+/* ---------- screens ---------- */
+.screen{animation:enter .5s cubic-bezier(.2,.7,.2,1)}
+@keyframes enter{from{transform:translateY(18px)}to{transform:none}}
+.btn{display:inline-flex;align-items:center;gap:10px;text-decoration:none;font-family:var(--font-display);font-size:17px;padding:12px 24px;border-radius:99px;background:var(--amber);color:var(--ink);border:0;cursor:pointer;box-shadow:0 6px 0 var(--amber-deep);transition:transform .15s,box-shadow .15s}
+.btn:hover{transform:translateY(2px);box-shadow:0 4px 0 var(--amber-deep)}
+.btn.ghost{background:transparent;color:var(--cream);box-shadow:inset 0 0 0 2px rgba(255,244,228,.7)}
+.btn.ghost:hover{background:rgba(255,244,228,.14)}
+.btn.dark{background:var(--ink);color:var(--cream);box-shadow:0 6px 0 #000}
+.btn.dark:hover{box-shadow:0 4px 0 #000}
+
+
+/* page 1 : hero */
+.p1{position:relative;padding-top:104px;background:linear-gradient(180deg,#5b1a63 0%,#a42f6d 34%,#ff6b53 66%,#ffb55a 88%,#ffd479 100%);overflow:hidden;isolation:isolate}
+.p1 canvas{position:absolute;inset:0;width:100%;height:100%;z-index:-3}
+.planet{position:absolute;z-index:-2;left:50%;top:150px;width:min(640px,90vw);aspect-ratio:1;translate:-50% 0;border-radius:50%;background:radial-gradient(circle at 50% 40%,rgba(255,200,170,.55),rgba(255,140,120,.35) 55%,rgba(255,120,110,0) 72%)}
+.moon{position:absolute;z-index:-2;right:12%;top:210px;width:clamp(48px,7vw,96px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e0693f,#9c3320);opacity:.9}
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:24px;align-items:center;min-height:620px;padding-bottom:170px}
+.eyebrow{font-family:var(--font-mono);font-size:12.5px;letter-spacing:.1em;display:inline-flex;gap:10px;align-items:center;padding:7px 14px;border-radius:99px;background:rgba(37,16,47,.4)}
+.eyebrow::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--amber);animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.25}}
+.hero h1{font-size:clamp(34px,5.4vw,66px);margin-top:18px;text-shadow:0 4px 24px rgba(37,16,47,.35);color:#fff}
+.hero h1 em{font-style:normal;display:inline-block;margin-top:6px;background:var(--cream);color:var(--rust);padding:.06em .9em .14em .45em;border-radius:16px;transform:rotate(-2deg);box-shadow:0 6px 0 rgba(37,16,47,.25)}
+.hero h1 .nw{white-space:nowrap}
+.sub{margin-top:22px;max-width:34em;font-size:clamp(17px,1.7vw,21px);color:#fff;font-weight:500;text-shadow:0 2px 12px rgba(60,10,50,.55),0 1px 2px rgba(60,10,50,.4)}
+.cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:24px}
+.stage{position:relative;height:min(560px,70vw);min-height:380px}
+.astro{position:absolute;right:2%;top:-2%;width:min(330px,60%);animation:float 5s ease-in-out infinite;cursor:pointer}
+.robot-hero{position:absolute;left:-6%;bottom:4%;width:min(400px,80%);animation:drive 6s ease-in-out infinite;filter:drop-shadow(0 22px 14px rgba(80,20,10,.4));cursor:pointer}
+.astro,.robot-hero{transition:translate .25s ease-out}
+@keyframes float{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-18px) rotate(2deg)}}
+@keyframes drive{0%,100%{transform:translateX(0)}50%{transform:translateX(14px)}}
+.ground{position:relative;height:90px;background:linear-gradient(180deg,#c5481f,#8f2f17)}
+.ridge{position:absolute;left:0;right:0;bottom:calc(100% - 1px);width:100%;height:110px;display:block}
+.ground::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 20% 30%,rgba(0,0,0,.12) 0 18px,transparent 19px),radial-gradient(ellipse at 70% 55%,rgba(0,0,0,.12) 0 26px,transparent 27px),radial-gradient(ellipse at 90% 25%,rgba(0,0,0,.1) 0 14px,transparent 15px)}
+
+/* ---------- white content (เดิมคือหน้าหุ่นยนต์) ---------- */
+.content{background:#fff;color:var(--ink);padding:84px 0 96px}
+.mods{display:grid;gap:88px}
+.panel{scroll-margin-top:100px}
+.ph{display:flex;flex-wrap:wrap;gap:6px 24px;align-items:flex-end;justify-content:space-between;padding-bottom:18px;margin-bottom:30px;border-bottom:2px solid #f1e6da}
+.ph h2{font-size:clamp(26px,3.4vw,40px);margin-top:4px;color:var(--ink)}
+.ph p{max-width:36em;color:#5d4a62;font-size:16px}
+.content .tag,.chap .tag-l{color:var(--rust)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:36px;align-items:center}
+.shot{display:block;width:100%;border:0;padding:0;cursor:zoom-in;background:#f6efe6;border-radius:22px;overflow:hidden;position:relative;box-shadow:0 18px 40px rgba(42,16,48,.16),0 0 0 4px var(--amber)}
+.shot img{display:block;width:100%;height:auto}
+.shot .zoom{position:absolute;right:12px;bottom:12px;font-family:var(--font-mono);font-size:12px;padding:5px 12px;border-radius:99px;background:var(--ink);color:var(--cream)}
+.tall{max-width:430px;margin-inline:auto}
+.video{position:relative;display:block;width:100%;max-width:900px;margin-inline:auto;aspect-ratio:16/9;border-radius:22px;overflow:hidden;text-decoration:none;color:#fff;box-shadow:0 18px 44px rgba(42,16,48,.2),0 0 0 4px var(--amber);background:#000}
+.video img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s}
+.video:hover img{transform:scale(1.04)}
+.video .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(37,16,47,.1),rgba(37,16,47,.65))}
+.play{position:absolute;left:50%;top:50%;translate:-50% -50%;width:88px;height:88px;border-radius:50%;background:var(--coral);display:grid;place-items:center;box-shadow:0 0 0 10px rgba(255,107,83,.35)}
+.play::after{content:"";margin-left:6px;border-left:26px solid #fff;border-block:16px solid transparent}
+.video .cap{position:absolute;left:16px;right:16px;bottom:12px;font-family:var(--font-display);font-size:15px}
+.video[aria-disabled="true"]{cursor:default}
+.video[aria-disabled="true"] .play{background:#7d4a6a;box-shadow:0 0 0 10px rgba(255,244,228,.14)}
+.steps{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.step{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:start;padding:14px 16px;border-radius:18px;background:#fff8ee;border:1px solid #f2e2cc;transition:border-color .2s,transform .2s}
+.step:hover{border-color:var(--amber);transform:translateX(4px)}
+.step b{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-family:var(--font-mono);font-weight:700;background:var(--amber);color:var(--ink)}
+.step h4{font-size:18px}
+.step p{font-size:14.5px;line-height:1.6;color:#5d4a62;margin-top:2px}
+.step .mini{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.step .mini span{font-size:12.5px;padding:2px 12px;border-radius:99px;background:#ffe8c2}
+.lvl{display:grid;gap:12px}
+.lv{padding:16px 18px;border-radius:18px;background:#fff8ee;border:1px solid #f2e2cc;border-left:6px solid var(--c)}
+.lv header{display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:var(--font-mono);font-size:12.5px;color:#7a6680}
+.lv header b{padding:2px 12px;border-radius:99px;background:var(--c);color:#111;font-weight:700}
+.lv h3{font-size:20px;margin-top:8px}
+.lv p{font-size:14.5px;line-height:1.65;color:#5d4a62;margin-top:4px}
+
+/* 3D model: เต็มความกว้าง ไม่มีกรอบ */
+.model-full{scroll-margin-top:100px}
+.model-full .ph{margin-bottom:18px}
+.ph .badge{vertical-align:middle;margin-left:8px}
+/* 3D model viewer (light card, like the original model page) */
+.viewer{background:#fff;color:#1e293b;border-radius:26px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.45),0 0 0 4px rgba(255,194,77,.9)}
+.viewer.expanded{position:fixed;inset:0;z-index:95;border-radius:0;overflow:auto;box-shadow:none}
+.v-head{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;padding:14px 20px;background:linear-gradient(135deg,#0077b6,#00b4d8 60%,#48cae4);color:#fff}
+.v-head h3{font-family:"Prompt",var(--font-display);font-size:18px;font-weight:600}
+.v-head p{font-size:14px;opacity:.92;line-height:1.5}
+.badge{display:inline-block;font-family:"Prompt",sans-serif;font-weight:600;font-size:12px;padding:3px 12px;border-radius:99px;background:#ffb703;color:#000}
+.v-grid{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);gap:14px;padding:14px}
+.canvas-box{position:relative;height:clamp(340px,52vh,520px);border:2px solid #bae6fd;border-radius:16px;overflow:hidden;background:#fff}
+.viewer.expanded .canvas-box{height:calc(100vh - 250px);min-height:340px}
+#webgl-container{width:100%;height:100%;outline:none;cursor:grab}
+#webgl-container:active{cursor:grabbing}
+.v-loading{position:absolute;inset:0;display:grid;place-items:center;color:#64748b;font-size:15px;pointer-events:none}
+.cam-bar{position:absolute;top:10px;right:10px;left:10px;display:flex;justify-content:flex-end;flex-wrap:wrap;gap:4px;z-index:5;pointer-events:none}
+.cam-bar>div{pointer-events:auto;background:rgba(255,255,255,.95);padding:4px;border-radius:99px;border:1px solid #e2e8f0;display:flex;flex-wrap:wrap;gap:4px}
+.btn-cam-angle,.btn-action-sm{font-family:"Prompt",sans-serif;font-size:12.5px;font-weight:600;color:#334155;background:#f8fafc;border:1px solid #cbd5e1;border-radius:99px;padding:4px 12px;cursor:pointer;transition:all .2s}
+.btn-cam-angle:hover,.btn-cam-angle.active{background:#ffb703;color:#000;border-color:#ffb703}
+.btn-action-sm.active{background:#00b4d8;color:#fff;border-color:#00b4d8}
+.v-bottom{position:absolute;bottom:10px;left:50%;translate:-50% 0;z-index:5;display:flex;align-items:center;gap:10px;padding:6px 14px;border-radius:99px;background:rgba(255,255,255,.95);border:1px solid #e2e8f0;box-shadow:0 4px 12px rgba(0,0,0,.08);white-space:nowrap;max-width:calc(100% - 20px)}
+.v-bottom span{font-size:12.5px;color:#475569;overflow:hidden;text-overflow:ellipsis}
+.btn-y{font-family:"Prompt",sans-serif;font-weight:600;font-size:13px;background:#ffb703;color:#000;border:0;border-radius:99px;padding:5px 14px;cursor:pointer}
+.status{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;padding:8px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-left:5px solid #00b4d8;border-radius:10px;font-size:13.5px}
+.status b{font-family:"Prompt",sans-serif}
+.badge.bg-success{background:#10b981;color:#fff}.badge.bg-primary{background:#3b82f6;color:#fff}
+.v-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:12px 14px}
+.v-card h4{font-family:"Prompt",sans-serif;font-size:15px;font-weight:600;margin-bottom:8px;color:#0f172a}
+.lesson-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.preset-level-btn{text-align:left;background:#fff;border:2px solid #e2e8f0;border-left:5px solid #00b4d8;border-radius:10px;padding:8px 10px;cursor:pointer;font-family:"Prompt",sans-serif;font-weight:600;font-size:13px;color:#0f172a;transition:all .2s}
+.preset-level-btn:hover{border-color:#94a3b8}
+.preset-level-btn.level-1{border-left-color:#ffb703}.preset-level-btn.level-2{border-left-color:#10b981}.preset-level-btn.level-3{border-left-color:#3b82f6}.preset-level-btn.level-full{border-left-color:#ff751f}
+.preset-level-btn.preset-active{background:linear-gradient(135deg,#fffbeb,#fef3c7);border-color:#ffb703}
+.side{display:flex;flex-direction:column;gap:10px}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:7px 10px;cursor:pointer;font-family:"Prompt",sans-serif;font-weight:600;font-size:13px;color:#0f172a}
+.toggle span{display:flex;align-items:center;gap:8px}
+.toggle i{width:10px;height:10px;border-radius:50%}
+.toggle input{width:18px;height:18px;accent-color:#00b4d8;margin:0}
+.two-t{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.servo{padding-top:10px;border-top:1px solid #e2e8f0}
+.servo-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.servo-top b{font-family:"Prompt",sans-serif;font-size:13px}
+.btn-outline-primary,.btn-primary{font-family:"Prompt",sans-serif;font-weight:600;font-size:12px;border-radius:99px;padding:3px 12px;cursor:pointer;border:1px solid #3b82f6}
+.btn-outline-primary{background:#fff;color:#3b82f6}.btn-primary{background:#3b82f6;color:#fff}
+.acts{display:flex;gap:4px}.acts .btn-action-sm{flex:1}
+#slider-servo{width:100%;margin-top:10px;accent-color:#00b4d8}
+#servo-angle-label{display:block;text-align:center;font-family:"Prompt",sans-serif;font-weight:600;font-size:13px;color:#2563eb}
+.rc-radar-box{background:#0f172a;border-radius:12px;padding:10px;color:#b9f5c8;text-align:center;border:1px solid #1e293b;margin-top:auto}
+.rc-radar-box>b{display:block;font-family:"Prompt",sans-serif;font-size:12.5px;color:#38bdf8;margin-bottom:4px}
+.rc-radar-box canvas{display:block;width:100%;max-width:300px;height:120px;margin:0 auto}
+#rc-dist{margin-top:4px;font-family:"Prompt",sans-serif;font-weight:700;font-size:15px;color:#ffb703}
+#rc-ang{font-family:"Prompt",sans-serif;font-size:13px;opacity:.85}
+
+/* overrides: viewer เต็มหน้า ไร้กรอบ */
+.viewer{background:#fff;color:#1e293b;border-radius:0;overflow:visible;box-shadow:none}
+.viewer.expanded{position:fixed;inset:0;z-index:95;overflow:auto;padding-block:12px}
+.viewer .v-grid{grid-template-columns:minmax(0,2.5fr) minmax(280px,1fr);gap:20px;padding:0 clamp(16px,3vw,48px)}
+.viewer .canvas-box{height:clamp(380px,62vh,600px);border:0;border-radius:0}
+.viewer.expanded .canvas-box{height:calc(100vh - 210px)}
+
+/* learning center (ไม่มีภาพ) */
+.lc{position:relative;display:block;overflow:hidden;isolation:isolate;border-radius:30px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#c2407a 0%,#ef5a6f 36%,#ff7b54 72%,#ffa45c 100%);box-shadow:0 22px 50px rgba(220,80,90,.32);transition:transform .25s,box-shadow .25s}
+.lc::before,.lc::after{content:"";position:absolute;z-index:-1;border-radius:50%;background:rgba(255,255,255,.1)}
+.lc::before{width:420px;height:420px;right:-140px;top:-180px}
+.lc::after{width:300px;height:300px;left:-110px;bottom:-150px}
+.lc:hover{transform:translateY(-6px);box-shadow:0 30px 64px rgba(220,80,90,.42)}
+.lc-body{padding:clamp(32px,5vw,60px) clamp(20px,5vw,64px);display:flex;flex-direction:column;align-items:center;text-align:center;gap:16px}
+.lc-logo{display:block;height:clamp(40px,5.4vw,60px);width:auto;filter:drop-shadow(0 6px 14px rgba(140,30,60,.35))}
+.lc-body .tag{color:#fff3e4;background:rgba(255,255,255,.14);padding:4px 14px;border-radius:99px}
+.lc-body h3{font-size:clamp(26px,3.2vw,40px);color:#fff}
+.lc-body p{font-size:16.5px;line-height:1.8;max-width:46em;color:rgba(255,255,255,.94)}
+.lc-teach{max-width:46em;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);border-radius:16px;padding:12px 18px;font-size:15px}
+.lc-url{font-family:var(--font-mono);font-size:12.5px;color:#ffe6d6;word-break:break-all}
+.lc-go{margin-top:8px;display:inline-flex;gap:12px;align-items:center;font-family:var(--font-display);font-size:clamp(18px,2vw,21px);padding:15px 38px;border-radius:99px;background:#fff;color:#d9485f;box-shadow:0 7px 0 #ffc2a8,0 16px 32px rgba(150,30,60,.35),0 0 0 6px rgba(255,255,255,.22);transition:transform .2s,box-shadow .2s,background .2s}
+.lc-go i{font-style:normal;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#ff7b54,#d9485f);color:#fff;font-size:17px;transition:transform .2s}
+.lc:hover .lc-go{transform:translateY(-3px);background:#fffbea;box-shadow:0 10px 0 #ffc2a8,0 22px 40px rgba(150,30,60,.4),0 0 0 9px rgba(255,255,255,.28)}
+.lc:hover .lc-go i{transform:rotate(45deg)}
+.lc:active .lc-go{transform:translateY(3px);box-shadow:0 3px 0 #ffc2a8,0 10px 20px rgba(150,30,60,.3)}
+
+/* report cards */
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin:0;padding:0;list-style:none}
+.card{display:flex;flex-direction:column;width:100%;height:100%;text-align:left;cursor:pointer;border:0;padding:14px;border-radius:26px;background:#fff8ee;color:var(--ink);box-shadow:inset 0 0 0 1px #f2e2cc;transition:transform .25s,background .25s,box-shadow .25s}
+.card:hover{transform:translateY(-6px);background:#fff2df;box-shadow:inset 0 0 0 2px var(--amber),0 14px 30px rgba(42,16,48,.1)}
+.thumb{position:relative;height:150px;border-radius:18px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;color:#fff;background:var(--g);overflow:hidden}
+.thumb small{font-family:var(--font-mono);font-size:12px;letter-spacing:.1em;padding:3px 12px;border-radius:99px;background:rgba(255,255,255,.22);align-self:flex-start}
+.thumb strong{font-family:var(--font-display);font-weight:500;font-size:28px;line-height:1.2}
+.thumb::after{content:attr(data-n);position:absolute;right:10px;bottom:-26px;font-family:var(--font-display);font-size:110px;line-height:1;color:rgba(255,255,255,.18)}
+.card h3{font-size:22px;margin:16px 6px 4px}
+.card p{font-size:14.5px;line-height:1.6;color:#5d4a62;margin:0 6px 14px}
+.card .open{margin:auto 6px 4px;padding-top:12px;border-top:1px solid #f2e2cc;font-family:var(--font-display);font-size:14px;color:var(--rust);display:flex;justify-content:space-between}
+
+/* team */
+.team-img{display:block;width:100%;border:0;padding:0;cursor:zoom-in;border-radius:22px;overflow:hidden;background:#f6efe6;box-shadow:0 18px 40px rgba(42,16,48,.16)}
+.team-img img{display:block;width:100%;height:auto}
+.roster{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:20px}
+.who{padding:16px 18px;border-radius:18px;background:#fff8ee;border:1px solid #f2e2cc}
+.who .tag{display:block;margin-bottom:6px}
+.who ol{margin:0;padding-left:1.3em;font-size:15.5px}
+
+/* ---------- chapter pages ---------- */
+.chap-hero{position:relative;padding:136px 0 76px;color:#fff;background:var(--g);overflow:hidden;isolation:isolate}
+.chap-hero::before{content:"";position:absolute;inset:0;z-index:-2;background:url(assets/banner.webp) center/cover;opacity:.16;mix-blend-mode:luminosity}
+.chap-hero .num{position:absolute;right:4%;bottom:-.22em;z-index:-1;font-family:var(--font-display);font-size:clamp(170px,24vw,320px);line-height:1;color:rgba(255,255,255,.14)}
+.chap-hero .tag{display:inline-block;color:#fff;background:rgba(0,0,0,.24);padding:5px 14px;border-radius:99px}
+.chap-hero h1{font-size:clamp(38px,5.8vw,72px);margin-top:14px;text-shadow:0 4px 24px rgba(0,0,0,.2)}
+.chap-hero p{font-size:clamp(17px,1.8vw,21px);opacity:.92;margin-top:8px;max-width:32em}
+.chap-body{background:#fff;color:var(--ink);padding:56px 0 90px}
+.chap-grid{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:44px;align-items:start}
+.chap-main .lead{font-size:clamp(18px,1.9vw,22px);line-height:1.85}
+.chap-main ul{margin:26px 0 0;padding:0;list-style:none;display:grid;gap:10px}
+.chap-main li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center;padding:14px 18px;border-radius:16px;background:#fff8ee;border:1px solid #f2e2cc}
+.chap-main li b{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-family:var(--font-mono);font-size:14px;background:var(--amber);color:var(--ink)}
+.chap-main .note{margin-top:26px;padding:14px 18px;border-radius:14px;background:#fff1da;border-left:5px solid var(--coral);font-size:15.5px}
+.chap-main .acts-row{margin-top:26px;display:flex;flex-wrap:wrap;gap:12px}
+.chap-main .doc{display:block;margin-top:26px;width:100%;height:82vh;border:0;border-radius:16px;box-shadow:0 0 0 1px #eadfd3,0 14px 34px rgba(42,16,48,.12)}
+.toc{position:sticky;top:96px;background:#fff8ee;border:1px solid #f2e2cc;border-radius:20px;padding:18px}
+.toc .tag-l{font-family:var(--font-mono);font-size:12px;letter-spacing:.14em}
+.toc ol{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:4px}
+.toc button{width:100%;text-align:left;display:flex;gap:10px;align-items:center;border:0;background:none;cursor:pointer;padding:8px 10px;border-radius:12px;font-family:var(--font-display);font-size:15.5px;color:var(--ink)}
+.toc button i{font-style:normal;flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-family:var(--font-mono);font-size:12px;background:#f2e2cc}
+.toc button:hover{background:#ffeccc}
+.toc button[aria-current="true"]{background:var(--ink);color:var(--cream)}
+.toc button[aria-current="true"] i{background:var(--amber);color:var(--ink)}
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:48px;padding-top:26px;border-top:2px solid #f1e6da}
+.pager button{display:flex;flex-direction:column;gap:2px;text-align:left;cursor:pointer;border:0;padding:14px 18px;border-radius:18px;background:#fff8ee;box-shadow:inset 0 0 0 1px #f2e2cc;color:var(--ink);transition:box-shadow .2s,transform .2s}
+.pager button:hover{box-shadow:inset 0 0 0 2px var(--amber);transform:translateY(-2px)}
+.pager button.nx{text-align:right;grid-column:2}
+.pager small{font-family:var(--font-mono);font-size:12px;letter-spacing:.1em;color:var(--rust)}
+.pager b{font-family:var(--font-display);font-weight:500;font-size:19px}
+/* modals */
+.modal{position:fixed;inset:0;z-index:100;background:rgba(23,10,31,.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:grid;place-items:center;padding:16px}
+.sheet{position:relative;width:min(720px,100%);max-height:88vh;overflow:auto;background:var(--cream);color:var(--ink);border-radius:28px;padding:clamp(22px,4vw,40px);box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.sheet .tag{color:var(--rust)}
+.sheet h2{font-size:clamp(24px,3.4vw,34px);margin:6px 40px 14px 0}
+.sheet .lead{font-size:17px}
+.sheet ul{margin:14px 0 0;padding-left:1.3em;display:grid;gap:6px}
+.sheet .note{margin-top:18px;padding:12px 16px;border-radius:14px;background:#fff1da;border-left:5px solid var(--coral);font-size:15px}
+.sheet .row{margin-top:22px;display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end}
+.x{position:absolute;top:16px;right:16px;width:40px;height:40px;border-radius:50%;border:0;cursor:pointer;background:var(--ink);color:var(--cream);font-size:18px}
+.lb{background:rgba(23,10,31,.94)}
+.lb img{max-height:92vh;max-width:100%;width:auto;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.lb .x{top:calc(14px + env(safe-area-inset-top,0px));background:var(--amber);color:var(--ink)}
+
+/* footer */
+.foot{padding:40px 0 calc(44px + env(safe-area-inset-bottom,0px));background:var(--plum-3);text-align:center;color:rgba(255,244,228,.84);font-size:15px;line-height:1.85}
+.foot .bm{display:inline-flex;align-items:center;gap:10px;font-family:var(--font-display);font-size:24px;margin-bottom:10px;color:var(--cream)}
+.foot .bm i{display:inline-block;width:34px;height:16px;border-radius:99px;background:var(--cream);position:relative}
+.foot .bm i::before,.foot .bm i::after{content:"";position:absolute;top:4px;width:8px;height:8px;border-radius:50%;background:var(--plum-3)}
+.foot .bm i::before{left:7px}.foot .bm i::after{right:7px}
+.foot p{max-width:46em;margin-inline:auto}
+
+/* ---------- intro page ---------- */
+.chap-banner{background:#9ed7e8;padding-top:78px}
+.chap-banner img{display:block;width:100%;height:auto;max-height:440px;object-fit:cover}
+.chap-main.rich{display:grid;grid-template-columns:minmax(0,1fr);gap:64px}
+.chap-main .tool ul{margin:0;list-style:disc;padding-left:1.25em}
+.chap-main .tool li::marker{color:var(--coral)}
+.chap-main .tool li{display:list-item;padding:0;border:0;border-radius:0;background:none}
+.tool .lbl{align-self:flex-start}
+.isec{scroll-margin-top:100px}
+.ih{display:flex;align-items:center;gap:14px;font-size:clamp(24px,3vw,34px);padding-bottom:14px;margin-bottom:24px;border-bottom:2px solid #f1e6da}
+.ih b{flex:none;width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-family:var(--font-mono);font-size:18px;background:linear-gradient(135deg,#00b4d8,#0077b6);color:#fff;box-shadow:0 4px 0 #023e8a}
+.box{border-radius:18px;padding:16px 18px;background:#fff8ee;border:1px solid #f2e2cc}
+.box h4{font-size:17.5px;line-height:1.45}
+.box p{font-size:15px;line-height:1.7;color:#5d4a62;margin-top:4px}
+.pn{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px}
+.pn-col{display:grid;gap:12px;align-content:start}
+.pn-h{display:flex;align-items:center;gap:10px;font-size:22px;padding:10px 16px;border-radius:14px;color:#fff}
+.pn-h span{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.25);font-family:var(--font-mono);font-size:15px;font-weight:700}
+.prob .pn-h{background:linear-gradient(135deg,#e85d3f,#b8401e)}
+.need .pn-h{background:linear-gradient(135deg,#10b981,#0f9d8a)}
+.prob .box{background:#fff4f0;border-color:#fbd5c8;border-left:5px solid #e85d3f}
+.need .box{background:#effcf6;border-color:#c6efdc;border-left:5px solid #10b981}
+.obj{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.obj li{display:flex;flex-direction:column;gap:10px;padding:18px;border-radius:18px;background:#f0f9ff;border:1px solid #cfe9f7;font-size:16px;line-height:1.6}
+.obj i{font-style:normal;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-family:var(--font-mono);font-weight:700;background:var(--amber);color:var(--ink);box-shadow:0 4px 0 var(--amber-deep)}
+.sub-h{font-size:20px;margin:6px 0 12px;color:var(--rust)}
+.sub-p{color:#5d4a62;margin-bottom:12px}
+.duo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:14px;margin-bottom:30px}
+.lbl{display:inline-block;font-family:var(--font-mono);font-size:12px;letter-spacing:.1em;padding:3px 12px;border-radius:99px;background:var(--ink);color:var(--cream);margin-bottom:8px}
+.box .lbl+p{font-size:16px;color:var(--ink)}
+.tint-a{background:#f0f9ff;border-color:#cfe9f7}
+.tint-b{background:#fff8ee}
+.tbl-wrap{overflow-x:auto;border-radius:18px;border:1px solid #eadfd3;box-shadow:0 10px 26px rgba(42,16,48,.06)}
+.tbl{width:100%;min-width:560px;border-collapse:collapse;font-size:15.5px;line-height:1.65}
+.tbl th{background:linear-gradient(135deg,#0077b6,#00b4d8);color:#fff;font-family:var(--font-display);font-weight:500;text-align:left;padding:12px 16px;white-space:nowrap}
+.tbl td{padding:14px 16px;border-top:1px solid #f1e6da;vertical-align:top}
+.tbl tbody tr:nth-child(even) td{background:#fffaf3}
+.tbl td:first-child{width:70px;text-align:center}
+.tbl td:first-child b{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:10px;background:var(--amber);font-family:var(--font-mono)}
+.tbl td:nth-child(2){font-family:var(--font-display);width:32%}
+.tool{display:flex;flex-direction:column}
+.tool h4{margin-bottom:8px}
+.tool ul{margin:0;padding-left:1.2em;display:grid;gap:6px;font-size:15px;line-height:1.65;color:#3d2a42}
+.isec .duo:has(.tool){grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.plan{border-radius:20px;padding:20px 22px;background:#fff8ee;border:1px solid #f2e2cc}
+.plan p{font-size:17px}
+.months{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:14px}
+.months span{text-align:center;font-family:var(--font-display);padding:10px 6px;color:#fff;background:linear-gradient(90deg,var(--coral),var(--amber));border-radius:10px}
+.months span:first-child{border-radius:99px 10px 10px 99px}.months span:last-child{border-radius:10px 99px 99px 10px}
+.fold{border-radius:20px;border:1px solid #eadfd3;background:#fff}
+.fold summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 18px;font-family:var(--font-display);font-size:17px;border-radius:20px;background:#f0f9ff}
+.fold summary::-webkit-details-marker{display:none}
+.fold-t{font-style:normal;flex:none;font-family:var(--font-body);font-size:14px;padding:5px 14px;border-radius:99px;background:#0077b6;color:#fff}
+.fold-t::before{content:"ขยายดู ▾"}
+.fold[open] .fold-t::before{content:"ย่อเก็บ ▴"}
+.fold[open] summary{border-radius:20px 20px 0 0}
+.fold .frame{max-width:760px;margin:20px auto;background:#fff;box-shadow:0 10px 30px rgba(42,16,48,.12),0 0 0 3px #cfe9f7}
+.toc .subs{list-style:none;margin:4px 0 6px 18px;padding:0 0 0 12px;border-left:2px solid #f2e2cc;display:grid;gap:2px}
+.toc .subs button{font-family:var(--font-body);font-size:14px;padding:5px 8px}
+@media (max-width:1100px){ .chap-banner{padding-top:124px} }
+@media (max-width:760px){ .pn,.duo,.isec .duo:has(.tool){grid-template-columns:minmax(0,1fr)} }
+
+/* ---------- sky theme (หน้าที่มีแบนเนอร์) ---------- */
+.chap.th-sky .chap-banner{background:#9dd6e7}
+.chap.th-sky .chap-body{position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(180deg,#d2efee 0%,#bfe7f1 18%,#a9dcee 55%,#94d1ea 100%)}
+.clouds{position:absolute;inset:0;z-index:-1;pointer-events:none}
+.cloud{position:absolute;display:block;aspect-ratio:2/1;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 100'%3E%3Cpath d='M28 92h146a22 22 0 0 0 2-44 30 30 0 0 0-48-24 40 40 0 0 0-74 14 28 28 0 0 0-26 54z' fill='%23fdfdff'/%3E%3Cpath d='M28 92h146a22 22 0 0 0 20-14H8a28 28 0 0 0 20 14z' fill='%23e4e3f3'/%3E%3Cpath d='M70 30a30 30 0 0 1 40-8' stroke='%23fff' stroke-width='5' fill='none' stroke-linecap='round' opacity='.9'/%3E%3C/svg%3E") center/contain no-repeat;filter:drop-shadow(0 8px 10px rgba(60,120,160,.12));animation:drift var(--d,60s) ease-in-out infinite alternate}
+.cloud.mirror{transform:scaleX(-1)}
+@keyframes drift{from{translate:-30px 0}to{translate:40px 0}}
+.chap.themed .chap-body .wrap{position:relative}
+
+/* กล่องข้อความบนท้องฟ้า: พื้นขาวโปร่ง + ลูกเล่น */
+.chap.themed .box,.chap.themed .obj li,.chap.themed .plan,.chap.themed .tbl-wrap,.chap.themed .fold,.chap.themed .toc,.chap.themed .pager button{background:rgba(255,255,255,.88);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.95);box-shadow:0 10px 28px rgba(30,90,130,.14),inset 0 -3px 0 rgba(0,119,182,.06)}
+.chap.th-sky .ih{border-bottom-color:rgba(255,255,255,.7);color:#10324a;text-shadow:0 2px 0 rgba(255,255,255,.6)}
+.chap.th-sky .sub-h{color:#b8401e}
+.chap.th-sky .sub-p{color:#24506a}
+.chap.themed .tbl tbody tr:nth-child(even) td{background:rgba(240,249,255,.7)}
+.chap.themed .tbl td{border-top-color:#e2eef5}
+.chap.th-sky .pager{border-top-color:rgba(255,255,255,.7)}
+.chap.th-sky .pager small{color:#0077b6}
+.chap.th-sky .toc .subs{border-left-color:#cfe9f7}
+
+/* hover: ลอยขึ้น + แสงวิ่งผ่าน */
+.chap.themed .box,.chap.themed .obj li,.chap.themed .plan{position:relative;overflow:hidden;transition:transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .3s,border-color .3s}
+.chap.themed .box::after,.chap.themed .obj li::after,.chap.themed .plan::after{content:"";position:absolute;top:0;bottom:0;left:-60%;width:40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.75),transparent);transform:skewX(-18deg);pointer-events:none;transition:left .7s ease}
+.chap.themed .box:hover,.chap.themed .obj li:hover,.chap.themed .plan:hover{transform:translateY(-6px);box-shadow:0 20px 40px rgba(30,90,130,.22),0 0 0 3px rgba(255,194,77,.7)}
+.chap.themed .box:hover::after,.chap.themed .obj li:hover::after,.chap.themed .plan:hover::after{left:130%}
+
+/* ปัญหา / ความต้องการ: แถบสี + เลขกำกับ */
+.chap.themed .pn-col{counter-reset:pn}
+.chap.themed .prob .box,.chap.themed .need .box{counter-increment:pn;padding-right:56px;border-left-width:6px}
+.chap.themed .prob .box{border-left-color:#e85d3f}
+.chap.themed .need .box{border-left-color:#10b981}
+.chap.themed .prob .box::before,.chap.themed .need .box::before{content:counter(pn,decimal-leading-zero);position:absolute;right:14px;top:12px;font-family:var(--font-mono);font-weight:700;font-size:13px;padding:3px 9px;border-radius:99px;color:#fff;transition:transform .3s}
+.chap.themed .prob .box::before{background:#e85d3f}
+.chap.themed .need .box::before{background:#10b981}
+.chap.themed .box:hover::before{transform:scale(1.15) rotate(-6deg)}
+.chap.themed .pn-h{box-shadow:0 8px 20px rgba(30,90,130,.18)}
+
+/* วัตถุประสงค์: เลขเด้ง */
+.chap.themed .obj li:hover i{animation:hop .5s ease}
+@keyframes hop{40%{transform:translateY(-8px) rotate(-8deg)}70%{transform:translateY(2px)}}
+.ih b{animation:bob2 3.2s ease-in-out infinite}
+@keyframes bob2{50%{transform:translateY(-4px)}}
+
+/* แถวตาราง: ไฮไลต์ */
+.chap.themed .tbl tbody tr{transition:background .2s}
+.chap.themed .tbl tbody tr:hover td{background:#fff6dc}
+
+/* แผนงาน: แถบเดือนวิ่ง */
+.chap.themed .months span{background:linear-gradient(90deg,#ff6b53,#ffc24d,#ff6b53);background-size:200% 100%;animation:flow 6s linear infinite}
+@keyframes flow{to{background-position:-200% 0}}
+
+/* ค่อยๆ ปรากฏเมื่อเลื่อนถึง */
+.rv-on .rv{opacity:0;transform:translateY(26px);transition:opacity .6s ease,transform .5s cubic-bezier(.2,.8,.2,1),box-shadow .3s}
+.rv-on .rv.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.rv-on .rv{opacity:1;transform:none}}
+
+/* ---------- room theme (วิธีการดำเนินการ) ---------- */
+.chap.th-room .chap-banner{background:#36164a}
+.chap.th-room .chap-body{position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(180deg,#4a1f57 0%,#6e2f63 14%,#a8506a 34%,#e08a6a 58%,#f6c08a 80%,#fbe0b4 100%)}
+.beams{position:absolute;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.beams i{position:absolute;top:-10%;width:34%;height:70%;background:linear-gradient(180deg,rgba(255,236,200,.22),rgba(255,236,200,0));transform:skewX(-24deg);filter:blur(6px);animation:beam 9s ease-in-out infinite alternate}
+.beams i:nth-child(1){left:52%}.beams i:nth-child(2){left:70%;width:16%;animation-delay:-4s;opacity:.7}
+.beams i:nth-child(3){top:45%;left:-10%;width:28%;height:55%;animation-delay:-2s;opacity:.5}
+@keyframes beam{to{opacity:.45;translate:40px 0}}
+.motes{position:absolute;inset:0;z-index:-1;pointer-events:none}
+.mote{position:absolute;width:var(--s,6px);height:var(--s,6px);border-radius:50%;background:rgba(255,240,210,.85);box-shadow:0 0 10px rgba(255,220,160,.9);animation:mote var(--d,14s) ease-in-out infinite alternate}
+@keyframes mote{0%{translate:0 0;opacity:.2}50%{opacity:.9}100%{translate:30px -60px;opacity:.3}}
+.chap.th-room .ih{color:#fff;border-bottom-color:rgba(255,255,255,.3);text-shadow:0 2px 12px rgba(60,10,50,.35)}
+.chap.th-room .ih b{background:linear-gradient(135deg,#ffd166,#f59e0b);color:var(--ink);box-shadow:0 4px 0 #b45309}
+.chap.th-room .sub-h{color:#ffe3a8}
+.chap.th-room .sub-p{color:#fff3e4}
+.chap.th-room .pager{border-top-color:rgba(255,255,255,.4)}
+.chap.th-room .pager small{color:var(--rust)}
+
+/* กลุ่มตัวอย่าง */
+.grp2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+.grp{display:flex;flex-direction:column;gap:12px;padding:22px}
+.grp-tag{align-self:flex-start;font-family:var(--font-mono);font-size:12px;letter-spacing:.1em;padding:3px 12px;border-radius:99px;background:linear-gradient(135deg,#a42f6d,#ff6b53);color:#fff}
+.grp h3{font-size:20px;line-height:1.4}
+.grp dl{margin:0;display:grid;gap:8px}
+.grp dt{font-family:var(--font-display);font-size:14px;color:var(--rust)}
+.grp dd{margin:0;font-size:15px;line-height:1.65;color:#3d2a42}
+.gp{margin-top:auto;padding:14px;border-radius:14px;background:#fff6ea;border:1px dashed #f0c99a}
+.gp-top{font-family:var(--font-display);font-size:14px;margin-bottom:10px}
+.gp-bar{position:relative;height:16px;border-radius:99px;background:#f3e3cf;overflow:visible}
+.gp-fill{position:absolute;left:0;top:0;bottom:0;border-radius:99px;width:0;background:linear-gradient(90deg,#10b981,#34d399);transition:width 1.2s cubic-bezier(.2,.8,.2,1) .2s}
+.rv.in .gp-fill,.gp.go .gp-fill{width:calc(var(--n)/var(--max)*100%)}
+.gp-min{position:absolute;top:-5px;bottom:-5px;width:3px;border-radius:2px;background:#b8401e;left:calc(var(--min)/var(--max)*100%)}
+.gp-leg{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;font-size:13px;color:#5d4a62}
+.gp-leg span{display:inline-flex;align-items:center;gap:6px}
+.gp-leg b{width:12px;height:12px;border-radius:3px}
+.gp-leg .d1{background:#b8401e;width:4px}.gp-leg .d2{background:#10b981}
+.gp p{margin-top:6px;font-size:14px;font-weight:600;color:#0f766e}
+
+/* เครื่องมือ 5 ชิ้น */
+.tools5{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.chap-main .tools5 li{display:flex;gap:14px;align-items:flex-start;padding:16px 18px;border-radius:18px}
+.tools5 i{font-style:normal;flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-family:var(--font-mono);font-weight:700;background:linear-gradient(135deg,#a42f6d,#ff6b53);color:#fff;box-shadow:0 4px 0 #7a1f4f}
+.tools5 span{font-family:var(--font-display);font-size:16px;line-height:1.5}
+.tools5 em{display:block;font-style:normal;font-family:var(--font-body);font-size:13.5px;color:#7a6680;margin-top:2px}
+
+/* แท็บ + flowchart */
+.ftabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+.ftabs button{display:inline-flex;align-items:center;gap:8px;cursor:pointer;border:0;padding:8px 16px 8px 8px;border-radius:99px;font-family:var(--font-display);font-size:14.5px;background:rgba(255,255,255,.75);color:var(--ink);box-shadow:0 4px 12px rgba(60,10,50,.15);transition:transform .2s,background .2s}
+.ftabs button i{font-style:normal;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-mono);font-size:13px;background:#f3e3cf}
+.ftabs button:hover{transform:translateY(-2px);background:#fff}
+.ftabs button[aria-selected="true"]{background:var(--ink);color:var(--cream)}
+.ftabs button[aria-selected="true"] i{background:var(--amber);color:var(--ink)}
+.fc{display:flex;flex-direction:column;align-items:center;max-width:720px;margin-inline:auto;animation:fcIn .45s cubic-bezier(.2,.8,.2,1)}
+@keyframes fcIn{from{opacity:0;transform:translateY(14px)}}
+.fc-start{width:100%;text-align:center;font-family:var(--font-display);font-size:clamp(17px,2vw,20px);line-height:1.5;color:#fff;padding:16px 24px;border-radius:99px;background:linear-gradient(135deg,#2a1030,#6e2f63 60%,#a42f6d);box-shadow:0 10px 26px rgba(42,16,48,.35),inset 0 0 0 2px rgba(255,255,255,.18)}
+.fc-start small{display:block;font-family:var(--font-body);font-size:14px;opacity:.85;margin-top:2px}
+.fc-ar{position:relative;width:4px;height:44px;margin:4px 0;background:repeating-linear-gradient(180deg,#fff 0 6px,transparent 6px 12px);background-size:4px 12px;animation:dash 1s linear infinite;border-radius:2px}
+.fc-ar::after{content:"";position:absolute;left:50%;bottom:-8px;translate:-50% 0;border-left:9px solid transparent;border-right:9px solid transparent;border-top:11px solid #fff}
+.chap:not(.th-room) .fc-ar{background-image:repeating-linear-gradient(180deg,#0077b6 0 6px,transparent 6px 12px)}
+.chap:not(.th-room) .fc-ar::after{border-top-color:#0077b6}
+@keyframes dash{to{background-position:0 12px}}
+.fc-node{width:100%;padding:18px 20px;border-radius:20px;background:rgba(255,255,255,.93);border:1px solid #fff;box-shadow:0 12px 28px rgba(42,16,48,.18);transition:transform .25s,box-shadow .25s}
+.fc-node:hover{transform:translateY(-4px) scale(1.01);box-shadow:0 18px 36px rgba(42,16,48,.25),0 0 0 3px rgba(255,194,77,.8)}
+.fc-k{display:inline-block;font-family:var(--font-display);font-size:15px;padding:3px 14px;border-radius:99px;background:#fff1da;color:var(--rust);margin-bottom:8px}
+.fc-node p{font-size:15.5px;line-height:1.7}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chips span{font-size:13.5px;line-height:1.5;padding:5px 12px;border-radius:12px;background:#f6eefa;border:1px solid #e7d6f0;color:#3d2a42}
+.fc-end{display:flex;flex-direction:column;align-items:center;gap:2px;padding:16px 30px;border-radius:22px;background:linear-gradient(135deg,#10b981,#0f9d8a);color:#fff;box-shadow:0 10px 26px rgba(15,157,138,.4),0 0 0 6px rgba(16,185,129,.18);animation:pulseOk 2.4s ease-in-out infinite}
+.fc-end b{font-family:var(--font-display);font-weight:500;font-size:20px}
+.fc-end span{font-size:14px;opacity:.95}
+@keyframes pulseOk{50%{box-shadow:0 10px 26px rgba(15,157,138,.4),0 0 0 12px rgba(16,185,129,.08)}}
+.addie{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:start;border-left:6px solid var(--c)}
+.ad-l{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-family:"Prompt",var(--font-display);font-weight:700;font-size:26px;color:#fff;background:var(--c);box-shadow:0 5px 0 rgba(0,0,0,.18)}
+.addie .fc-k{background:color-mix(in srgb,var(--c) 14%,#fff);color:var(--c)}
+.addie .chips span{background:color-mix(in srgb,var(--c) 8%,#fff);border-color:color-mix(in srgb,var(--c) 25%,#fff)}
+.scale{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;margin-top:10px}
+.scale span{display:flex;flex-direction:column;align-items:center;padding:8px 4px;border-radius:10px;background:var(--c);color:#fff;font-size:13px;text-align:center}
+.scale b{font-family:var(--font-display);font-weight:500;font-size:14.5px}
+
+/* timeline เก็บข้อมูล */
+.tl{list-style:none;margin:0;padding:0 0 0 8px;display:grid;gap:14px;position:relative}
+.tl::before{content:"";position:absolute;left:30px;top:20px;bottom:20px;width:4px;border-radius:2px;background:linear-gradient(180deg,#ffd166,#ff6b53)}
+.chap-main .tl li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:center;padding:14px 18px 14px 10px;border-radius:18px;margin-left:0}
+.tl i{position:relative;z-index:1;font-style:normal;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-mono);font-weight:700;font-size:18px;background:var(--amber);color:var(--ink);box-shadow:0 0 0 5px #fff,0 6px 14px rgba(0,0,0,.15)}
+.tl p{font-size:15.5px;line-height:1.7}
+
+/* วิเคราะห์ข้อมูล */
+.an3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.an{display:flex;flex-direction:column;gap:8px;padding:20px}
+.an-ic{width:50px;height:50px;border-radius:16px;display:grid;place-items:center;font-size:26px;background:#fff1da}
+.an h4{font-size:17px}
+.an p{flex:1}
+.stat-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.stat-chips span{font-family:var(--font-mono);font-size:12.5px;padding:3px 10px;border-radius:99px;background:var(--ink);color:var(--cream)}
+
+@media (max-width:900px){ .an3{grid-template-columns:minmax(0,1fr)} }
+@media (max-width:760px){ .grp2{grid-template-columns:minmax(0,1fr)} .scale{grid-template-columns:repeat(2,minmax(0,1fr))} .scale span:last-child{grid-column:1/-1} .ftabs button{font-size:13.5px} }
+
+/* ---------- classroom theme (ผลการพัฒนา) ---------- */
+.chap.th-class .chap-banner{background:#fffcf7}
+.chap.th-class .chap-body{position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(180deg,#c4f7d0 0%,#b6eedc 30%,#c9f1e6 65%,#e6faf3 100%)}
+.chalk{position:absolute;inset:0;z-index:-1;pointer-events:none}
+.chalk span{position:absolute;font-family:"Prompt",var(--font-display);font-weight:600;color:rgba(255,255,255,.75);text-shadow:0 2px 0 rgba(20,120,100,.12);animation:chalkF var(--d,16s) ease-in-out infinite alternate}
+@keyframes chalkF{to{translate:18px -26px;rotate:12deg}}
+.chap.th-class .ih{color:#0b4f4a}
+.chap.th-class .ih b{background:linear-gradient(135deg,#14b8a6,#0f766e);box-shadow:0 4px 0 #115e59}
+.chap.th-class .ih{border-bottom-color:rgba(15,118,110,.2)}
+.chap.th-class .sub-h{color:#0f766e}
+.chap.th-class .beams i{background:linear-gradient(180deg,rgba(255,255,255,.45),rgba(255,255,255,0))}
+
+/* ---------- mars theme (สรุปและอภิปรายผล) ---------- */
+.chap.th-mars .chap-banner{background:#877cc8}
+.chap.th-mars .chap-body{position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(180deg,#9a3a5c 0%,#7c5bb5 10%,#8a7bd0 30%,#b07ec2 52%,#e07b87 72%,#c4423f 88%,#8f2430 100%)}
+.stars{position:absolute;inset:0;z-index:-1;pointer-events:none}
+.stars i{position:absolute;width:var(--s,3px);height:var(--s,3px);border-radius:50%;background:#fff;box-shadow:0 0 6px #fff;animation:tw var(--d,3s) ease-in-out infinite}
+@keyframes tw{50%{opacity:.2;transform:scale(.6)}}
+.stars b{position:absolute;width:var(--s,14px);height:calc(var(--s,14px)*.7);background:#4a1020;border-radius:40% 60% 50% 45%;opacity:.55;animation:rock var(--d,12s) ease-in-out infinite alternate}
+@keyframes rock{to{translate:20px -40px;rotate:160deg}}
+.chap.th-mars .ih{color:#fff;border-bottom-color:rgba(255,255,255,.3);text-shadow:0 2px 12px rgba(40,10,60,.4)}
+.chap.th-mars .ih b{background:linear-gradient(135deg,#ffd166,#f59e0b);color:var(--ink);box-shadow:0 4px 0 #b45309}
+.chap.th-mars .pager{border-top-color:rgba(255,255,255,.35)}
+.chap.th-mars .pager small{color:var(--rust)}
+
+/* ตอน 1: วงแหวน % */
+.rings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.ringc{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:24px 18px}
+.ringc svg{width:150px;height:150px;transform:rotate(-90deg)}
+.rg-bg{fill:none;stroke:#e3f3ee;stroke-width:12}
+.rg-fg{fill:none;stroke:#14b8a6;stroke-width:12;stroke-linecap:round;stroke-dasharray:326.73;stroke-dashoffset:326.73;transition:stroke-dashoffset 1.6s cubic-bezier(.2,.8,.2,1) .2s}
+.rv.in .rg-fg,.ringc.go .rg-fg{stroke-dashoffset:calc(326.73 * (1 - var(--p)))}
+.ringc:nth-child(2) .rg-fg{stroke:#f59e0b}.ringc:nth-child(3) .rg-fg{stroke:#8b5cf6}
+.rg-n{margin-top:-104px;margin-bottom:56px;font-family:"Prompt",var(--font-display);font-weight:700;font-size:28px;color:var(--ink)}
+.ringc p{font-size:16px;line-height:1.55}
+
+/* ตอน 2: slider */
+.slider{position:relative;border-radius:24px;background:#fff;box-shadow:0 16px 40px rgba(15,90,80,.18);padding:10px 10px 46px}
+.sl-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none;border-radius:18px;outline-offset:4px}
+.sl-track::-webkit-scrollbar{display:none}
+.sl-item{flex:0 0 100%;scroll-snap-align:center;margin:0;position:relative}
+.sl-item img{display:block;width:100%;aspect-ratio:4/3;max-height:560px;object-fit:contain;background:#fff;user-select:none;-webkit-user-drag:none}
+.sl-item figcaption{position:relative;margin:4px auto 0;width:fit-content;max-width:calc(100% - 20px);display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:8px 16px 8px 8px;border-radius:99px;background:rgba(42,16,48,.85);color:#fff;font-family:var(--font-display);font-size:15px;backdrop-filter:blur(6px)}
+.sl-item figcaption b{padding:3px 12px;border-radius:99px;background:var(--c);color:#111;font-family:var(--font-mono);font-size:12.5px}
+.sl-btn{position:absolute;top:calc(50% - 30px);translate:0 -50%;width:50px;height:50px;border-radius:50%;border:0;cursor:pointer;font-size:30px;line-height:1;background:#fff;color:var(--ink);box-shadow:0 6px 18px rgba(0,0,0,.2);transition:transform .2s,background .2s}
+.sl-btn:hover{transform:scale(1.1);background:var(--amber)}
+.sl-btn.prev{left:18px}.sl-btn.next{right:18px}
+.sl-dots{position:absolute;left:0;right:0;bottom:14px;display:flex;justify-content:center;gap:8px}
+.sl-dots button{width:12px;height:12px;padding:0;border:0;border-radius:99px;cursor:pointer;background:#cfe7e1;transition:width .3s,background .3s}
+.sl-dots button[aria-selected="true"]{width:34px;background:#14b8a6}
+.browser{border-radius:20px;overflow:hidden;background:#fff;box-shadow:0 16px 40px rgba(15,90,80,.2)}
+.br-bar{display:flex;align-items:center;gap:7px;padding:10px 14px;background:#eef3f2;border-bottom:1px solid #dde7e4}
+.br-bar i{width:12px;height:12px;border-radius:50%;background:#ff5f57}.br-bar i:nth-child(2){background:#febc2e}.br-bar i:nth-child(3){background:#28c840}
+.br-bar span{flex:1;min-width:0;margin-left:8px;padding:5px 14px;border-radius:99px;background:#fff;font-family:var(--font-mono);font-size:12.5px;color:#5d6b69;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.br-bar a{flex:none;font-size:13px;text-decoration:none;color:#0077b6;font-family:var(--font-display)}
+.br-view{position:relative;height:clamp(380px,62vh,620px);background:#f7fbfa}
+.br-fallback{position:absolute;inset:0;display:grid;place-items:center;padding:20px;text-align:center;color:#5d6b69}
+.chap-main .lc-frame{position:relative;margin:0;width:100%;height:100%;border:0;border-radius:0;box-shadow:none;background:transparent}
+.cta-c{display:flex;justify-content:center;margin-top:22px}
+.lc-go.big{text-decoration:none;color:#fff;background:linear-gradient(135deg,#0077b6,#00b4d8);box-shadow:0 7px 0 #023e8a,0 16px 32px rgba(2,62,138,.35)}
+.lc-go.big i{background:#fff;color:#0077b6}
+.lc-go.big:hover{transform:translateY(-3px);box-shadow:0 10px 0 #023e8a,0 22px 40px rgba(2,62,138,.4)}
+.lc-go.big:hover i{transform:rotate(-45deg)}
+
+/* ตอน 3-5: score */
+.score{display:grid;grid-template-columns:auto minmax(0,1fr);gap:26px;align-items:center;padding:24px}
+.sc-big{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:180px;padding:20px 22px;border-radius:22px;color:#fff;background:linear-gradient(135deg,#0f766e,#14b8a6);box-shadow:0 10px 24px rgba(15,118,110,.35)}
+.sc-big.green{background:linear-gradient(135deg,#059669,#34d399)}
+.sc-big.pink{background:linear-gradient(135deg,#a42f6d,#ff6b53)}
+.sc-big small{font-size:13.5px;opacity:.9}
+.sc-big b{font-family:"Prompt",var(--font-display);font-weight:700;font-size:54px;line-height:1.1}
+.sc-big span{font-size:14px;opacity:.9}
+.sc-big b span{font-size:inherit;opacity:1}
+.sc-body{display:grid;gap:10px}
+.sc-body p{font-size:16px;line-height:1.7}
+.lvl-badge{justify-self:start;font-family:var(--font-display);font-size:14px;padding:4px 14px;border-radius:99px;background:#fff1da;color:var(--rust)}
+.gauge{position:relative;height:18px;border-radius:99px;background:#e3f3ee;margin-top:6px}
+.g-fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:99px;background:linear-gradient(90deg,#5eead4,#0f766e);transition:width 1.4s cubic-bezier(.2,.8,.2,1) .2s}
+.gauge.pink .g-fill{background:linear-gradient(90deg,#ffb38a,#a42f6d)}
+.rv.in .g-fill{width:calc((var(--v) - 1) / 4 * 100%)}
+.g-mark{position:absolute;top:-8px;bottom:-8px;width:3px;border-radius:2px;background:var(--ink);left:calc((var(--m) - 1) / 4 * 100%)}
+.g-mark em{position:absolute;bottom:100%;left:50%;translate:-50% -2px;white-space:nowrap;font-style:normal;font-size:12px;padding:1px 8px;border-radius:99px;background:var(--ink);color:#fff}
+.g-ticks{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:12px;color:#7a6680;margin-top:-4px}
+.ttest{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:10px 14px;border-radius:14px;background:#ecfdf5;border:1px solid #a7f3d0}
+.ttest b{font-family:var(--font-mono);font-size:13px;padding:3px 10px;border-radius:99px;background:#059669;color:#fff}
+.ttest span{color:#065f46;font-size:15px}
+.kids{display:grid;grid-template-columns:repeat(11,minmax(0,1fr));gap:6px;max-width:460px}
+.kid{aspect-ratio:1;border-radius:50%;background:#e5e7eb;position:relative;transform:scale(0);transition:transform .4s cubic-bezier(.3,1.6,.5,1)}
+.kid::before{content:"";position:absolute;left:30%;right:30%;top:16%;height:34%;border-radius:50%;background:rgba(255,255,255,.85)}
+.kid::after{content:"";position:absolute;left:18%;right:18%;bottom:12%;height:30%;border-radius:50% 50% 30% 30%;background:rgba(255,255,255,.85)}
+.kid.ok{background:linear-gradient(135deg,#10b981,#059669)}
+.rv.in .kid{transform:scale(1)}
+.gp-leg .d0{background:#e5e7eb}
+
+/* สรุป */
+.sum5{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.sm{display:flex;flex-direction:column;gap:8px;padding:20px}
+.sm-ic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-size:26px;background:linear-gradient(135deg,#ede9fe,#fce7f3)}
+.sm h4{font-size:18px}
+.acc{display:grid;gap:12px}
+.ac{padding:0}
+.ac summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px;padding:16px 18px;font-family:var(--font-display);font-size:18px}
+.ac summary::-webkit-details-marker{display:none}
+.ac summary::after{content:"+";margin-left:auto;flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:20px;background:#ede9fe;color:#6d28d9;transition:transform .3s}
+.ac[open] summary::after{transform:rotate(45deg);background:var(--amber);color:var(--ink)}
+.ac summary i{font-style:normal;flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-family:var(--font-mono);font-size:14px;background:linear-gradient(135deg,#7c3aed,#c026d3);color:#fff}
+.ac p{padding:0 18px;font-size:15.5px;line-height:1.75}
+.ac[open] p{animation:fcIn .4s ease}
+.refs{display:flex;flex-wrap:wrap;gap:6px;padding:10px 18px 18px}
+.refs span{font-size:13px;padding:4px 12px;border-radius:99px;background:#f5f3ff;border:1px solid #ddd6fe;color:#5b21b6}
+.refs span::before{content:"📖 ";}
+.chap.themed .ac:hover{transform:translateY(-3px)}
+.sug2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.sg{padding:22px}
+.sg-h{font-size:19px;padding:10px 16px;border-radius:14px;color:#fff;margin-bottom:14px}
+.sg-h.use{background:linear-gradient(135deg,#10b981,#0f9d8a)}
+.sg-h.next{background:linear-gradient(135deg,#7c3aed,#c026d3)}
+.chap-main .chk{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.chap-main .chk li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:start;padding:10px 12px;border-radius:12px;background:#fafafa;border:1px solid #eee;font-size:15px;line-height:1.65;transition:background .2s,transform .2s}
+.chap-main .chk li:hover{background:#fffbea;transform:translateX(4px)}
+.chk li::before{content:"✓";display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:#10b981;color:#fff;font-weight:700;font-size:14px}
+.chk.rocket li::before{content:"🚀";background:#ede9fe;font-size:14px}
+
+@media (max-width:860px){ .rings{grid-template-columns:minmax(0,1fr)} .score{grid-template-columns:minmax(0,1fr)} .sc-big{min-width:0} .sug2{grid-template-columns:minmax(0,1fr)} .sl-btn{width:40px;height:40px;font-size:24px} .sl-item figcaption{font-size:13.5px;border-radius:16px} }
+
+/* ภาพหน้าเว็บในกรอบเบราว์เซอร์ */
+.br-shot{position:relative;display:block;overflow:hidden;background:#f3f4f6}
+.br-shot img{display:block;width:100%;height:auto;transition:transform .6s cubic-bezier(.2,.8,.2,1)}
+.br-shot:hover img{transform:scale(1.03)}
+.br-hint{position:absolute;left:50%;bottom:18px;translate:-50% 0;display:inline-flex;gap:8px;align-items:center;white-space:nowrap;font-family:var(--font-display);font-size:16px;padding:10px 22px;border-radius:99px;background:rgba(2,62,138,.88);color:#fff;box-shadow:0 10px 24px rgba(2,62,138,.35);opacity:.92;transition:opacity .3s,transform .3s}
+.br-shot:hover .br-hint{opacity:1;transform:translateY(-4px)}
+
+/* ---------- space theme (เล่มโครงงาน) ---------- */
+.chap.th-space .chap-banner{background:#5b5c95}
+.chap.th-space .chap-body{position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(180deg,#4a5ab0 0%,#3d3f8f 30%,#2a2c6e 65%,#1b1c4a 100%)}
+.neon{position:absolute;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.neon::before{content:"";position:absolute;left:50%;bottom:-40px;width:1600px;height:520px;translate:-50% 0;background-size:56px 56px;background-image:linear-gradient(to right,rgba(95,240,255,.18) 1px,transparent 1px),linear-gradient(to bottom,rgba(95,240,255,.18) 1px,transparent 1px);transform:perspective(600px) rotateX(64deg);transform-origin:center bottom;mask-image:linear-gradient(0deg,#000 20%,transparent);-webkit-mask-image:linear-gradient(0deg,#000 20%,transparent)}
+.neon i{position:absolute;width:2px;height:var(--h,180px);background:linear-gradient(180deg,transparent,#5ff0ff,transparent);box-shadow:0 0 12px #5ff0ff;opacity:.6;animation:streak var(--d,6s) linear infinite}
+@keyframes streak{from{transform:translateY(-120%)}to{transform:translateY(900%)}}
+.chap.th-space .ih{color:#fff;border-bottom-color:rgba(95,240,255,.3);text-shadow:0 0 18px rgba(95,240,255,.45)}
+.chap.th-space .ih b{background:linear-gradient(135deg,#5ff0ff,#3b82f6);color:#0b1640;box-shadow:0 4px 0 #1e3a8a,0 0 18px rgba(95,240,255,.5)}
+.chap.th-space .sub-p{color:#d6e4ff}
+.chap.th-space .pager{border-top-color:rgba(95,240,255,.25)}
+.chap.th-space .pager small{color:#2563eb}
+
+/* PDF viewer */
+.pdfv{border-radius:22px;overflow:hidden;background:#0f1236;box-shadow:0 24px 60px rgba(5,8,40,.55),0 0 0 2px rgba(95,240,255,.45),0 0 40px rgba(95,240,255,.25)}
+.pdfv:fullscreen{border-radius:0;display:flex;flex-direction:column}
+.pdf-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 16px;background:linear-gradient(90deg,#1e2a78,#3b3f9f);color:#fff}
+.pdf-bar .pdf-t{display:flex;align-items:center;gap:10px;margin-right:auto;font-family:var(--font-display);font-size:16px}
+.pdf-bar .pdf-t i{font-style:normal;font-family:var(--font-mono);font-size:12px;padding:3px 10px;border-radius:99px;background:#ff5a5a}
+.pdf-bar .pdf-t small{font-family:var(--font-body);font-size:13px;opacity:.75}
+.pdf-btn{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-display);font-size:14px;padding:7px 16px;border-radius:99px;border:0;cursor:pointer;text-decoration:none;background:rgba(255,255,255,.14);color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.3);transition:background .2s,transform .2s}
+.pdf-btn:hover{background:rgba(255,255,255,.26);transform:translateY(-2px)}
+.pdf-btn.hot{background:#5ff0ff;color:#0b1640;box-shadow:0 0 16px rgba(95,240,255,.6)}
+.chap-main .pdf-frame{display:block;margin:0;width:100%;height:min(86vh,1000px);border:0;border-radius:0;box-shadow:none;background:#525659}
+.pdfv:fullscreen .pdf-frame{flex:1;height:auto}
+.pdf-note{margin-top:14px;font-size:14px;color:#c9d6ff;text-align:center}
+.pdf-note a{color:#5ff0ff}
+@media (max-width:560px){ .pdf-bar .pdf-t{width:100%} .chap-main .pdf-frame{height:72vh} }
+
+/* ---------- flipbook ---------- */
+.flip{border-radius:22px;overflow:hidden;background:#0f1236;outline:none;box-shadow:0 24px 60px rgba(5,8,40,.5),0 0 0 2px rgba(95,240,255,.45),0 0 40px rgba(95,240,255,.22)}
+.flip:focus-visible{box-shadow:0 0 0 4px var(--amber),0 24px 60px rgba(5,8,40,.5)}
+.flip:fullscreen{border-radius:0;display:flex;flex-direction:column}
+.fl-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 16px;background:linear-gradient(90deg,#1e2a78,#3b3f9f);color:#fff}
+.fl-bar .pdf-t{display:flex;align-items:center;gap:10px;margin-right:auto;font-family:var(--font-display);font-size:16px}
+.fl-bar .pdf-t i{font-style:normal;font-family:var(--font-mono);font-size:12px;padding:3px 10px;border-radius:99px;background:#ff5a5a}
+.fl-bar .pdf-t small{font-family:var(--font-body);font-size:13px;opacity:.75}
+.fl-toc{display:flex;gap:6px;padding:10px 12px;overflow-x:auto;scrollbar-width:thin;background:#171b4d;border-bottom:1px solid rgba(95,240,255,.18)}
+.fl-toc button{flex:none;border:0;cursor:pointer;font-family:var(--font-display);font-size:13.5px;padding:6px 14px;border-radius:99px;background:rgba(255,255,255,.1);color:#d6e4ff;transition:background .2s,color .2s}
+.fl-toc button:hover{background:rgba(95,240,255,.25);color:#fff}
+.fl-toc button[aria-current="true"]{background:#5ff0ff;color:#0b1640}
+.fl-stage{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:18px 12px;background:radial-gradient(ellipse at 50% 40%,#2b3290,#141846 75%);touch-action:pan-y;user-select:none}
+.fl-page{position:relative;justify-self:center;width:min(100%,720px);aspect-ratio:var(--ar,.707);perspective:1800px}
+.fl-page img{display:block;width:100%;height:100%;object-fit:contain;background:#fff;border-radius:6px;box-shadow:0 18px 40px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.4);transform-origin:left center}
+.fl-page::after{content:"";position:absolute;top:0;bottom:0;left:0;width:22px;border-radius:6px 0 0 6px;background:linear-gradient(90deg,rgba(0,0,0,.18),transparent);pointer-events:none}
+.fl-page img.turn-n{animation:turnN .55s cubic-bezier(.2,.8,.2,1)}
+.fl-page img.turn-p{transform-origin:right center;animation:turnP .55s cubic-bezier(.2,.8,.2,1)}
+@keyframes turnN{from{transform:rotateY(55deg);opacity:.15;filter:brightness(.7)}to{transform:none;opacity:1}}
+@keyframes turnP{from{transform:rotateY(-55deg);opacity:.15;filter:brightness(.7)}to{transform:none;opacity:1}}
+.fl-nav{width:54px;height:54px;border-radius:50%;border:0;cursor:pointer;font-size:34px;line-height:1;padding-bottom:4px;background:#fff;color:#1e2a78;box-shadow:0 8px 20px rgba(0,0,0,.35),0 0 0 4px rgba(95,240,255,.3);transition:transform .2s,background .2s}
+.fl-nav:hover:not(:disabled){transform:scale(1.1);background:#5ff0ff}
+.fl-nav:disabled{opacity:.3;cursor:default}
+.fl-foot{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;padding:12px 16px;background:#171b4d;color:#d6e4ff}
+.fl-step{border:0;cursor:pointer;width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.12);color:#fff;font-size:16px}
+.fl-step:hover{background:rgba(95,240,255,.3)}
+.fl-range{flex:1;min-width:120px;accent-color:#5ff0ff}
+.fl-num{font-family:var(--font-display);font-size:14.5px;white-space:nowrap}
+.fl-in{width:58px;padding:4px 6px;border-radius:8px;border:1px solid rgba(95,240,255,.5);background:#0f1236;color:#fff;font:inherit;text-align:center}
+.flip:fullscreen .fl-stage{flex:1;min-height:0}
+.flip:fullscreen .fl-page{height:100%;width:auto;max-width:100%}
+@media (max-width:620px){ .fl-stage{grid-template-columns:minmax(0,1fr);padding:12px 8px 70px} .fl-nav{position:absolute;bottom:10px;width:46px;height:46px;font-size:28px} .fl-nav.prev{left:calc(50% - 60px)} .fl-nav.next{right:calc(50% - 60px)} .fl-bar .pdf-t{width:100%} }
+
+/* ---------- meteor theme (ภาคผนวก) ---------- */
+.chap.th-meteor .chap-banner{background:#7f0e60}
+.chap.th-meteor .chap-body{position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(180deg,#9e1a63 0%,#7c1167 22%,#5e0d62 55%,#3d0a4f 100%)}
+.meteors{position:absolute;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.meteors i{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff;box-shadow:0 0 6px #ffd6f2;animation:tw var(--d,3s) ease-in-out infinite}
+.meteors em{position:absolute;width:160px;height:3px;border-radius:99px;background:linear-gradient(90deg,rgba(255,200,90,0),#ffcf6b 70%,#fff);filter:drop-shadow(0 0 6px #ffb347);transform:rotate(-35deg);opacity:0;animation:shoot var(--d,7s) linear infinite}
+@keyframes shoot{0%{opacity:0;translate:0 0}6%{opacity:1}22%{opacity:0;translate:-520px 365px}100%{opacity:0;translate:-520px 365px}}
+.meteors b{position:absolute;width:var(--s,18px);height:calc(var(--s,18px)*.75);border-radius:42% 58% 50% 46%;background:linear-gradient(135deg,#f08a5a,#8a3a2a);opacity:.55;animation:rock var(--d,12s) ease-in-out infinite alternate}
+.chap.th-meteor .ih{color:#fff;border-bottom-color:rgba(255,255,255,.3);text-shadow:0 2px 14px rgba(60,0,40,.45)}
+.chap.th-meteor .ih b{background:linear-gradient(135deg,#ffd166,#f59e0b);color:var(--ink);box-shadow:0 4px 0 #b45309}
+.chap.th-meteor .sub-p{color:#ffe1f2}
+.chap.th-meteor .pager{border-top-color:rgba(255,255,255,.3)}
+.chap.th-meteor .pager small{color:var(--rust)}
+.parts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.part{position:relative;margin:0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:40px 18px 18px}
+.part img{width:100%;height:150px;object-fit:contain;filter:drop-shadow(0 12px 14px rgba(60,10,60,.28));animation:partF 4.5s ease-in-out infinite;transition:transform .35s cubic-bezier(.3,1.5,.5,1)}
+.part:nth-child(3n+2) img{animation-delay:-1.5s}.part:nth-child(3n) img{animation-delay:-3s}
+@keyframes partF{50%{translate:0 -8px}}
+.part:hover img{transform:scale(1.12) rotate(-3deg)}
+.part h4{font-size:18px}
+.part p{font-size:14.5px;line-height:1.6}
+.pt-lv{position:absolute;top:12px;left:12px;font-family:var(--font-mono);font-size:11.5px;font-weight:700;padding:2px 10px;border-radius:99px;background:var(--c);color:#111}
+.gal{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:clamp(150px,17vw,210px);grid-auto-flow:dense;gap:12px}
+.gph{position:relative;display:block;padding:0;border:0;cursor:zoom-in;border-radius:18px;overflow:hidden;background:#2a0a35;box-shadow:0 14px 30px rgba(30,0,30,.35);transition:transform .3s,box-shadow .3s}
+.gph.g-wide{grid-column:span 2;grid-row:span 2}
+.gph.g-full{grid-column:1/-1;grid-row:span 2}
+.gph img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s cubic-bezier(.2,.8,.2,1)}
+.gph:hover{transform:translateY(-4px);box-shadow:0 20px 40px rgba(30,0,30,.45),0 0 0 3px var(--amber)}
+.gph:hover img{transform:scale(1.06)}
+.gph span{position:absolute;left:10px;right:10px;bottom:10px;text-align:left;font-family:var(--font-display);font-size:14px;color:#fff;padding:6px 12px;border-radius:12px;background:rgba(42,16,48,.78);backdrop-filter:blur(4px)}
+.appx-idx{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.ax{display:flex;align-items:center;gap:12px;text-align:left;cursor:pointer;padding:14px;font:inherit;color:var(--ink)}
+.ax b{flex:none;width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-family:var(--font-display);font-size:22px;font-weight:500;background:linear-gradient(135deg,#a42f6d,#ff6b53);color:#fff}
+.ax span{font-family:var(--font-display);font-size:14.5px;line-height:1.4}
+@media (max-width:900px){ .parts,.gal{grid-template-columns:repeat(2,minmax(0,1fr))} .appx-idx{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:520px){ .parts{grid-template-columns:minmax(0,1fr)} .gal{grid-template-columns:minmax(0,1fr)} .gal{grid-auto-rows:220px} .gph.g-wide,.gph.g-full{grid-column:auto;grid-row:auto} }
+
+/* ---------- พื้นหลังขยับ: หน้าแรกส่วนสีขาว ---------- */
+.content{position:relative;isolation:isolate;overflow:hidden}
+.homefx{position:absolute;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.homefx .blob{position:absolute;width:var(--s,420px);aspect-ratio:1;border-radius:50%;filter:blur(60px);opacity:.5;animation:blobM var(--d,26s) ease-in-out infinite alternate}
+@keyframes blobM{0%{translate:0 0;scale:1}50%{translate:80px -60px;scale:1.15}100%{translate:-60px 50px;scale:.9}}
+.homefx .sh{position:absolute;font-family:"Prompt",var(--font-display);font-weight:700;color:var(--c,#ffc24d);opacity:.4;animation:shF var(--d,14s) ease-in-out infinite alternate}
+@keyframes shF{to{translate:30px -50px;rotate:25deg}}
+/* เพิ่มการขยับในธีมอื่น */
+.cloud{animation:drift2 var(--d,30s) ease-in-out infinite alternate}
+@keyframes drift2{0%{translate:-110px 0}50%{translate:0 -14px}100%{translate:110px 6px}}
+.sparks{position:absolute;inset:0;z-index:-1;pointer-events:none}
+.sparks i{position:absolute;width:var(--s,6px);aspect-ratio:1;background:#fff;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);opacity:.8;animation:tw var(--d,3s) ease-in-out infinite}
+.chalk span{animation-name:chalkF2}
+@keyframes chalkF2{0%{translate:0 0;rotate:0deg}50%{translate:26px -34px;rotate:14deg}100%{translate:-18px -60px;rotate:-10deg}}
+.mote{animation-name:mote2}
+@keyframes mote2{0%{translate:0 0;opacity:.15}50%{opacity:.95}100%{translate:50px -120px;opacity:.2}}
+
+/* ---------- โซนดาวเคราะห์สีอ่อน (Learning Center → คณะผู้จัดทำ) ---------- */
+.content{padding-bottom:0}
+.pz{position:relative;isolation:isolate;overflow:hidden;margin-top:88px;padding:96px 0 180px;background:linear-gradient(180deg,#fff 0%,#fff1ec 9%,#ffe3e0 34%,#fdd9e4 58%,#ffe1cf 82%,#fbd2bd 100%)}
+.pz-fx{position:absolute;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.pz-planet{position:absolute;right:-180px;top:12%;width:560px;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 35% 32%,#ffe4d6 0%,#ffc4b4 40%,#f7a3a8 70%,#ef8f9f 100%);opacity:.55;box-shadow:inset -40px -30px 80px rgba(220,100,120,.25);animation:pzSpin 40s ease-in-out infinite alternate}
+.pz-planet::before,.pz-planet::after{content:"";position:absolute;border-radius:50%;background:rgba(220,110,120,.22)}
+.pz-planet::before{width:90px;height:70px;left:24%;top:30%}.pz-planet::after{width:60px;height:48px;left:52%;top:58%}
+.pz-moon{position:absolute;left:4%;top:38%;width:140px;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff1e8,#f8c0b0);opacity:.6;animation:pzFloat 14s ease-in-out infinite alternate}
+@keyframes pzSpin{to{translate:-40px 30px;rotate:12deg}}
+@keyframes pzFloat{to{translate:30px -40px}}
+.pz-ground{position:absolute;left:0;bottom:0;width:100%;height:260px;display:block;opacity:.75}
+.pz-fx .st{position:absolute;width:var(--s,6px);aspect-ratio:1;background:#ffb3a0;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);animation:tw var(--d,3s) ease-in-out infinite}
+.pz-fx .rk{position:absolute;width:var(--s,16px);height:calc(var(--s,16px)*.72);border-radius:42% 58% 50% 46%;background:linear-gradient(135deg,#f6a98f,#d97a78);opacity:.5;animation:rock var(--d,12s) ease-in-out infinite alternate}
+.pz .ph{border-bottom-color:rgba(217,72,95,.18)}
+.pz .card{background:rgba(255,255,255,.82);box-shadow:inset 0 0 0 1px rgba(255,255,255,.9),0 10px 26px rgba(200,80,90,.1)}
+.pz .card:hover{background:#fff}
+.nb{white-space:nowrap}
+
+/* ---------- การ์ดรายงาน: ภาพการ์ตูนเคลื่อนไหว ---------- */
+.thumb.pic{background:#2a1030;height:auto;aspect-ratio:2.6/1;padding:10px;isolation:isolate}
+.thumb.pic::after{display:none}
+.th-scene{position:absolute;inset:0;z-index:-1;background:var(--img) center/auto 100% no-repeat;animation:thPan 14s ease-in-out infinite alternate}
+.th-scene{animation-delay:calc(var(--i,0) * -2.5s)}
+.th-robot,.th-dust{animation-delay:calc(var(--i,0) * -1.3s)}
+@keyframes thPan{0%{background-position:44% 50%;transform:scale(1)}100%{background-position:56% 50%;transform:scale(1.05)}}
+.thumb.pic small{position:relative;z-index:2;font-size:10.5px;padding:2px 10px;background:rgba(42,16,48,.55);backdrop-filter:blur(4px)}
+.thumb.pic strong{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.th-m{position:absolute;z-index:3;pointer-events:none;filter:drop-shadow(0 6px 8px rgba(0,0,0,.35))}
+.th-robot{width:56px;bottom:4px;left:-80px;animation:thDrive 7s linear infinite}
+@keyframes thDrive{0%{left:-80px}45%{left:calc(100% - 90px)}55%{left:calc(100% - 90px);transform:translateY(-4px)}100%{left:calc(100% + 10px)}}
+.th-dust{position:absolute;z-index:2;bottom:8px;left:0;width:30px;height:10px;border-radius:50%;background:rgba(255,230,200,.6);filter:blur(3px);animation:thDust 7s linear infinite}
+@keyframes thDust{0%{left:-110px;opacity:0}10%{opacity:.8}45%{left:calc(100% - 120px);opacity:.8}55%{opacity:0}100%{left:calc(100% - 20px);opacity:0}}
+.th-astro{width:40px;left:10px;bottom:6px;animation:thFloat 4.5s ease-in-out infinite}
+@keyframes thFloat{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-12px) rotate(6deg)}}
+.th-tw{position:absolute;z-index:1;width:8px;height:8px;background:#fff;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);animation:tw 2.4s ease-in-out infinite}
+.card:hover .th-scene{animation-duration:6s}
+.card:hover .th-astro{animation-duration:1.6s}
+.card:hover .th-robot,.card:hover .th-dust{animation-duration:3.5s}
+.foot .bm{display:block;height:44px;width:auto;margin:0 auto 14px}
+.foot p{max-width:46em;margin-inline:auto}
+
+/* responsive */
+@media (max-width:1260px){ .cta-pill{display:none} }
+@media (max-width:1100px){
+  html{scroll-padding-top:140px}
+  .nav-in{flex-wrap:wrap;row-gap:8px}
+  .pill{order:3;flex:1 1 100%}
+  .pill button:first-child{margin-left:auto}.pill button:last-child{margin-right:auto}
+  .p1{padding-top:150px}
+  .chap-hero{padding-top:176px}
+  .panel,.model-full{scroll-margin-top:140px}
+  .viewer .v-grid{grid-template-columns:minmax(0,1fr)}
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .chap-grid{grid-template-columns:minmax(0,1fr)}
+  .toc{position:static}
+}
+@media (max-width:860px){
+  .hero{grid-template-columns:minmax(0,1fr);min-height:0;padding-bottom:150px}
+  .stage{min-height:340px;height:88vw;max-height:460px}
+  .two,.roster{grid-template-columns:minmax(0,1fr)}
+  .tall{max-width:360px}
+  .content{padding-top:64px}
+  .mods{gap:64px}
+}
+@media (max-width:560px){
+  .cards{grid-template-columns:minmax(0,1fr)}
+  .lesson-grid,.two-t{grid-template-columns:minmax(0,1fr)}
+  .cam-bar{justify-content:center}
+  .v-bottom span{display:none}
+  .logo-btn{height:42px;padding:8px 14px}
+  .pill button{padding:8px 12px;font-size:14px}
+  .pager{grid-template-columns:minmax(0,1fr)}
+  .pager button.nx{grid-column:auto}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="progress" id="bar"></div>
+<div class="ring" id="ring" aria-hidden="true"></div>
+
+<header class="nav">
+  <div class="wrap nav-in">
+    <button class="logo-btn" type="button" data-go="home" aria-label="ROBOCART กลับหน้าแรก"><img src="assets/logo-white.webp" alt="ROBOCART"></button>
+    <nav class="pill" id="pill" aria-label="เมนูหลัก">
+      <button type="button" data-go="home" aria-current="page">หน้าแรก</button>
+      <button type="button" data-go="intro">บทนำ</button>
+      <button type="button" data-go="method">วิธีการดำเนินการ</button>
+      <button type="button" data-go="result">ผลการพัฒนา</button>
+      <button type="button" data-go="conclusion">สรุปและอภิปรายผล</button>
+      <button type="button" data-go="book">เล่มโครงงาน</button>
+      <button type="button" data-go="appendix">ภาคผนวก</button>
+    </nav>
+    <div class="nav-r">
+      <button class="sq" type="button" id="snd" aria-pressed="false" aria-label="เปิดเสียงเอฟเฟกต์">
+        <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="m22 9-6 6M16 9l6 6"/></svg>
+        <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>
+      </button>
+      <a class="cta-pill" href="https://edu-robocart.github.io/learning/" target="_blank" rel="noopener">Learning Center ↗</a>
+    </div>
+  </div>
+</header>
+
+<main>
+<!-- ================= หน้าแรก ================= -->
+<div class="screen" id="screen-home" data-screen="home" aria-label="หน้าแรก">
+  <section class="p1">
+    <canvas id="stars" aria-hidden="true"></canvas>
+    <div class="planet" aria-hidden="true"></div>
+    <div class="moon" aria-hidden="true"></div>
+    <div class="wrap hero">
+      <div>
+        <span class="eyebrow">ROBOCART · EDUCATIONAL ROBOTICS</span>
+        <h1>การพัฒนารูปแบบการจัดการเรียนรู้<br><em><span class="nw">โดยใช้หุ่นยนต์</span><br><span class="nw">ช่วยสอน</span></em></h1>
+        <p class="sub">เพื่อส่งเสริมทักษะการเขียนโปรแกรมและการคิดเชิงคำนวณสำหรับนักเรียนชั้นประถมศึกษาปีที่ 4 - 6</p>
+        <div class="cta">
+          <button class="btn" type="button" data-scroll="m-video">สำรวจหุ่นยนต์ ROBOCART <span aria-hidden="true">→</span></button>
+          <button class="btn ghost" type="button" data-scroll="m-report">ดูรายงานโครงงาน</button>
+        </div>
+      </div>
+      <div class="stage">
+        <img class="astro" id="astro" data-scroll="m-video" src="assets/astro.webp" alt="น้องนักบินอวกาศมาสคอตของ ROBOCART กำลังโบกมือ">
+        <img class="robot-hero" id="robotHero" data-scroll="m-video" src="assets/robot.webp" alt="หุ่นยนต์ ROBOCART บนฐาน ROBO BASE MINI พร้อมบอร์ด REKA:BIT">
+      </div>
+    </div>
+    <div class="ground">
+      <svg class="ridge" viewBox="0 0 1440 110" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0 110V62l90-34 70 22 120-44 80 38 110-26 90 40 120-48 100 36 130-30 90 30 110-40 90 34 140-26 100 30V110Z" fill="#c5481f"/>
+        <path d="M0 110V84l140-22 90 18 150-30 100 24 160-20 110 22 150-26 120 20 140-14 80 12 200-18V110Z" fill="#d85a2b" opacity=".85"/>
+      </svg>
+    </div>
+  </section>
+
+  <section class="content" aria-label="ROBOCART หุ่นยนต์และบทเรียน">
+    <div class="wrap mods">
+
+      <!-- video -->
+      <div class="panel" id="m-video">
+        <div class="ph"><div><span class="tag">MODULE 01 · VIDEO</span><h2>ทำความรู้จักกับโครงงาน</h2></div><p>ดูคลิปแนะนำว่าหุ่นยนต์ ROBOCART ช่วยให้นักเรียนเรียนรู้การเขียนโปรแกรมได้อย่างไร</p></div>
+        <a class="video" id="yt" href="#" target="_blank" rel="noopener" aria-disabled="true">
+          <img src="assets/banner.webp" alt="" loading="lazy">
+          <span class="shade"></span><span class="play" aria-hidden="true"></span>
+          <span class="cap" id="ytcap">คลิปแนะนำโครงงานกำลังจัดทำ</span>
+        </a>
+      </div>
+
+      <!-- steps -->
+      <div class="panel" id="m-steps">
+        <div class="ph"><div><span class="tag">MODULE 02 · LEARNING MODEL</span><h2>รูปแบบการจัดการเรียนรู้ 5 ขั้นตอน</h2></div><p>กระบวนการจัดการเรียนรู้ผ่านสถานการณ์จำลองและลงมือปฏิบัติจริง เพื่อฝึกทักษะการแก้ปัญหา การคิดเชิงคำนวณ และการทำงานเป็นทีมอย่างเป็นระบบ</p></div>
+        <div class="two">
+          <button class="shot tall" type="button" data-zoom="assets/steps.webp" data-alt="อินโฟกราฟิกรูปแบบการจัดการเรียนรู้โดยใช้หุ่นยนต์ช่วยสอน 5 ขั้นตอน" aria-label="ขยายภาพรูปแบบการจัดการเรียนรู้ 5 ขั้นตอน">
+            <img src="assets/steps.webp" alt="อินโฟกราฟิกรูปแบบการจัดการเรียนรู้ 5 ขั้นตอน: กำหนดสถานการณ์ปัญหา นำเสนอความรู้ มอบหมายภารกิจ สรุปและเชื่อมโยงผลกิจกรรม นำเสนออย่างสร้างสรรค์" loading="lazy">
+            <span class="zoom">TAP TO ZOOM</span>
+          </button>
+          <ol class="steps">
+            <li class="step"><b>1</b><div><h4>กำหนดสถานการณ์ปัญหา</h4><p>ใช้ Animation กระตุ้นความสนใจ และตั้งคำถามให้ผู้เรียนฝึกระบุปัญหา</p></div></li>
+            <li class="step"><b>2</b><div><h4>นำเสนอความรู้</h4><p>อธิบายหลักการต่างๆ ของหุ่นยนต์ สาธิตการเขียนโปรแกรมเบื้องต้น และมีสื่อวิดีโอที่สามารถทบทวนได้ตามเนื้อหาแต่ละบทเรียน</p></div></li>
+            <li class="step"><b>3</b><div><h4>มอบหมายภารกิจ</h4><p>ใช้ Animation ต่อเนื่องจากสถานการณ์ปัญหา เพื่อให้ทราบภารกิจที่ต้องลงมือปฏิบัติ</p><div class="mini"><span>เขียนโปรแกรมควบคุมหุ่นยนต์</span><span>ใบงานกิจกรรม</span></div></div></li>
+            <li class="step"><b>4</b><div><h4>สรุปและเชื่อมโยงผลกิจกรรม</h4><p>ถอดบทเรียน สะท้อนปัญหาและวิธีแก้ไข พร้อมพัฒนาทักษะ Soft Skills การทำงานเป็นทีม</p></div></li>
+            <li class="step"><b>5</b><div><h4>นำเสนออย่างสร้างสรรค์</h4><p>สื่อสารวิธีคิดและผลงานหน้าชั้นเรียนอย่างอิสระสร้างสรรค์ พร้อมรับข้อเสนอแนะ</p></div></li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- structure -->
+      <div class="panel" id="m-structure">
+        <div class="ph"><div><span class="tag">MODULE 03 · HARDWARE</span><h2>โครงสร้างหุ่นยนต์ ROBOCART</h2></div><p>หุ่นยนต์ที่ออกแบบให้ถอดประกอบเซนเซอร์ได้ ตามระดับความยากของเนื้อหาแต่ละบทเรียน (Level 1–3) ตั้งแต่การเคลื่อนที่พื้นฐาน ตรวจจับเส้น จนถึงตรวจจับสิ่งกีดขวาง</p></div>
+        <div class="two">
+          <div class="lvl">
+            <div class="lv" style="--c:var(--lv1)"><header><b>LEVEL 1</b><span>บทที่ 2</span></header><h3>ควบคุมหุ่นยนต์ให้เคลื่อนที่</h3><p>micro:bit บนบอร์ด REKA:BIT พร้อมมอเตอร์เกียร์ ล้อ 2 ข้าง และรังถ่าน 18650</p></div>
+            <div class="lv" style="--c:var(--lv2)"><header><b>LEVEL 2</b><span>บทที่ 3</span></header><h3>ควบคุมหุ่นยนต์วิ่งตามเส้น</h3><p>เพิ่มเซนเซอร์ Maker Line ใต้ตัวหุ่นยนต์ เพื่อตรวจจับเส้นทาง</p></div>
+            <div class="lv" style="--c:var(--lv3)"><header><b>LEVEL 3</b><span>บทที่ 4</span></header><h3>ควบคุมหุ่นยนต์หลบหลีกวัตถุ</h3><p>เพิ่มเซอร์โวและเซนเซอร์อัลตราโซนิก HC-SR04 ด้านหน้า เพื่อวัดระยะและหลบสิ่งกีดขวาง</p></div>
+          </div>
+          <button class="shot tall" type="button" data-zoom="assets/levels.webp" data-alt="ชิ้นส่วนและเซนเซอร์ของหุ่นยนต์ ROBOCART ตามระดับ Level 1 ถึง 3" aria-label="ขยายภาพโครงสร้างหุ่นยนต์ ROBOCART">
+            <img src="assets/levels.webp" alt="โครงสร้างหุ่นยนต์ ROBOCART Level 1 ถึง 3 พร้อมชิ้นส่วนและเซนเซอร์ของแต่ละระดับ" loading="lazy">
+            <span class="zoom">TAP TO ZOOM</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3D model : เต็มความกว้าง ไม่มีกรอบ -->
+    <div class="model-full" id="m-model" style="margin-top:88px">
+      <div class="wrap"><div class="ph"><div><span class="tag">MODULE 04 · 3D SIMULATOR</span><h2>โครงสร้างจำลองหุ่นยนต์ ROBOCART <span class="badge">3D Interactive</span></h2></div><p>หมุนดู 360° และทดสอบการติดตั้งเซนเซอร์แบบเรียลไทม์ · micro:bit V2 + REKA:BIT</p></div></div>
+      <div class="viewer" id="viewer">
+        <div class="v-grid">
+          <div>
+            <div class="canvas-box">
+              <div id="webgl-container"></div>
+              <div class="v-loading" id="vLoading">กำลังโหลดโมเดล 3 มิติ…</div>
+              <div class="cam-bar"><div>
+                <button id="cam-iso" class="btn-cam-angle active" type="button">มุมเฉียง 3D</button>
+                <button id="cam-front" class="btn-cam-angle" type="button">ด้านหน้า</button>
+                <button id="cam-bottom" class="btn-cam-angle" type="button">ใต้ท้อง</button>
+                <button id="cam-side" class="btn-cam-angle" type="button">ด้านข้าง</button>
+                <button id="cam-top" class="btn-cam-angle" type="button">ด้านบน</button>
+              </div></div>
+              <div class="v-bottom">
+                <span>ลากเพื่อหมุน · คลิกที่โมเดลแล้วกลิ้งเมาส์เพื่อซูม</span>
+                <button id="btn-reset-view" class="btn-y" type="button">รีเซ็ตมุมมอง</button>
+                <button id="btn-expand" class="btn-y" type="button" aria-pressed="false">เต็มจอ</button>
+              </div>
+            </div>
+            <div class="status">
+              <b>ชิ้นส่วนที่แสดง:</b>
+              <span class="badge">พื้นฐาน + REKA:BIT</span>
+              <span id="badge-makerline" class="badge bg-success">Maker Line</span>
+              <span id="badge-servosonar" class="badge bg-primary">Servo + Ultrasonic</span>
+            </div>
+            <div class="v-card" style="margin-top:10px">
+              <h4>การประกอบตามระดับบทเรียน</h4>
+              <div class="lesson-grid">
+                <button id="preset-base" class="preset-level-btn level-1" type="button">Level 1 • เคลื่อนที่พื้นฐาน</button>
+                <button id="preset-makerline" class="preset-level-btn level-2" type="button">Level 2 • วิ่งตามเส้น</button>
+                <button id="preset-ultrasonic" class="preset-level-btn level-3" type="button">Level 3 • หลบหลีกวัตถุ</button>
+                <button id="preset-full" class="preset-level-btn level-full preset-active" type="button">ติดตั้งครบชุด (Full)</button>
+              </div>
+            </div>
+          </div>
+          <div class="v-card side">
+            <h4>ปรับแต่งระบบ</h4>
+            <label class="toggle" for="chk-makerline"><span><i style="background:#5c2d73"></i>Maker Line</span><input type="checkbox" id="chk-makerline" checked></label>
+            <label class="toggle" for="chk-servosonar"><span><i style="background:#1d4ed8"></i>Servo + Ultrasonic</span><input type="checkbox" id="chk-servosonar" checked></label>
+            <div class="two-t">
+              <label class="toggle" for="chk-obstacles"><span>สิ่งกีดขวาง</span><input type="checkbox" id="chk-obstacles" checked></label>
+              <label class="toggle" for="chk-waves"><span>คลื่นเสียง</span><input type="checkbox" id="chk-waves" checked></label>
+            </div>
+            <div class="servo" id="servo-control-panel">
+              <div class="servo-top"><b>องศาเซอร์โว</b><button id="btn-sweep-toggle" class="btn-outline-primary" type="button">สแกนอัตโนมัติ</button></div>
+              <div class="acts">
+                <button class="btn-action-sm" id="btn-servo-0" type="button">0°</button>
+                <button class="btn-action-sm active" id="btn-servo-90" type="button">90°</button>
+                <button class="btn-action-sm" id="btn-servo-180" type="button">180°</button>
+              </div>
+              <input id="slider-servo" type="range" min="0" max="180" value="90" step="1" aria-label="องศาเซอร์โว">
+              <span id="servo-angle-label">มุม: 90° (ตรงกลาง)</span>
+            </div>
+            <div id="rc-radar-box" class="rc-radar-box">
+              <b>เรดาร์ (Radar UI)</b>
+              <canvas id="rc-radar" width="400" height="180"></canvas>
+              <div id="rc-dist">—</div>
+              <div id="rc-ang">มุม 90°</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pz" id="pz"><div class="pz-fx" aria-hidden="true"><i class="pz-planet"></i><i class="pz-moon"></i><svg class="pz-ground" viewBox="0 0 1440 260" preserveAspectRatio="none"><path d="M0 260V120l110-40 90 26 140-58 100 46 130-30 110 50 150-62 120 44 140-36 110 34 130-46 110 40V260Z" fill="#f9c9b2"/><path d="M0 260V176l160-30 100 22 170-36 120 30 180-24 130 28 170-32 140 24 150-18 120 16V260Z" fill="#f5b49a"/></svg></div>
+    <div class="wrap mods">
+      <!-- learning center (ไม่มีภาพ) -->
+      <div class="panel" id="m-lc">
+        <div class="ph"><div><span class="tag">MODULE 05 · ONLINE PLATFORM</span><h2>เว็บไซต์ ROBOCART LEARNING CENTER</h2></div><p>กดที่การ์ดเพื่อเข้าสู่เว็บไซต์ศูนย์การเรียนรู้</p></div>
+        <a class="lc" href="https://edu-robocart.github.io/learning/" target="_blank" rel="noopener">
+          <span class="lc-body">
+            <img class="lc-logo" src="assets/logo-white.webp" alt="ROBOCART">
+            <span class="tag">ศูนย์การเรียนรู้หุ่นยนต์</span>
+            <h3>ROBOCART LEARNING CENTER</h3>
+            <p>ศูนย์การเรียนรู้หุ่นยนต์ที่รวมบทเรียน สื่อการเรียนรู้ ที่บูรณาการบทเรียน และกิจกรรมการเขียนโปรแกรมแบบบล็อก (Block Code) พร้อมเสริมประสิทธิภาพด้วยระบบตรวจสอบโค้ดอัตโนมัติ เพื่อให้ผู้เรียนได้รับผลป้อนกลับทันทีและฝึกฝนทักษะได้อย่างเป็นขั้นตอน</p>
+            <span class="lc-teach">ควบคู่กับฟังก์ชัน 'โหมดคุณครู' สำหรับเข้าถึงคู่มือการสอนและเฉลยกิจกรรม ที่ช่วยจัดการเรียนรู้ให้มีความสะดวกและมีประสิทธิภาพสูงสุด</span>
+            <span class="lc-url">edu-robocart.github.io/learning</span>
+            <span class="lc-go">เข้าสู่เว็บไซต์ <i aria-hidden="true">→</i></span>
+          </span>
+        </a>
+      </div>
+
+      <!-- รายงาน (ย้ายมาจากหน้ารายงาน) -->
+      <div class="panel" id="m-report">
+        <div class="ph"><div><span class="tag">REPORT</span><h2>รายงานโครงงาน</h2></div><p>เลือกหัวข้อเพื่ออ่านรายละเอียดแต่ละบท หรือกดจากเมนูด้านบนได้เลย</p></div>
+        <ul class="cards" id="cards"></ul>
+      </div>
+
+      <!-- team -->
+      <div class="panel" id="m-team">
+        <div class="ph"><div><span class="tag">MODULE 06 · CREW</span><h2>อาจารย์ที่ปรึกษาและคณะผู้จัดทำ</h2></div></div>
+        <button class="team-img" type="button" data-zoom="assets/team.webp" data-alt="อาจารย์ที่ปรึกษาและคณะผู้จัดทำโครงงาน" aria-label="ขยายภาพคณะผู้จัดทำ">
+          <img src="assets/team.webp" alt="อาจารย์ที่ปรึกษา ผู้ช่วยศาสตราจารย์ ดร.นคร ละลอกน้ำ และคณะผู้จัดทำ นางสาวนิรชา แก้วไม้ นางสาวเกวลิน กลางเนตร นางสาวสริตา ธนาภรณ์" loading="lazy">
+        </button>
+      </div>
+    </div>
+    </div>
+  </section>
+</div>
+
+<!-- ================= หน้าบทต่างๆ (สร้างจากตัวแปร REPORT ในสคริปต์) ================= -->
+
+<!-- ================= เนื้อหาหน้าบทนำ (แก้ข้อความได้ตรงนี้) ================= -->
+<template id="tpl-intro">
+  <!-- 1 ปัญหาและความต้องการ -->
+  <section class="isec" id="intro-need" data-sec="ปัญหาและความต้องการ">
+    <h2 class="ih"><b>1</b>ปัญหาและความต้องการ</h2>
+    <div class="pn">
+      <div class="pn-col prob">
+        <h3 class="pn-h"><span>!</span>ปัญหา</h3>
+        <div class="box"><h4>เนื้อหาและสื่อการเรียนรู้มีความซับซ้อน</h4><p>วิทยาการคำนวณเน้นการพัฒนาทักษะการคิดเชิงคำนวณและการเขียนโปรแกรม แต่โครงสร้างเนื้อหามีลักษณะเป็นนามธรรมสูง ทำให้ผู้เรียนทำความเข้าใจได้ยาก</p></div>
+        <div class="box"><h4>ผู้เรียนขาดแรงจูงใจในการเรียนรู้</h4><p>ประสบปัญหาอุปสรรคด้านทักษะการพิมพ์คำสั่งภาษาอังกฤษที่ใช้ในการเขียนโค้ด</p></div>
+        <div class="box"><h4>ข้อจำกัดด้านบุคลากรและการจัดการเรียนรู้</h4><p>ครูผู้สอนขาดความเชี่ยวชาญเฉพาะทาง เน้นการสอนตามตำรา ขาดการจัดกิจกรรมการเรียนรู้เชิงรุก (Active Learning)</p></div>
+        <div class="box"><h4>ข้อจำกัดด้านงบประมาณและทรัพยากร</h4><p>อุปกรณ์และชุดหุ่นยนต์ฝึกเขียนโปรแกรมสำเร็จรูปในท้องตลาดมีราคาสูง ส่งผลให้สถานศึกษาไม่สามารถจัดหาได้เพียงพอต่อจำนวนผู้เรียน</p></div>
+      </div>
+      <div class="pn-col need">
+        <h3 class="pn-h"><span>✓</span>ความต้องการ</h3>
+        <div class="box"><h4>รูปแบบการจัดการเรียนรู้ที่กระตุ้นความสนใจ</h4><p>การพัฒนารูปแบบการจัดการเรียนรู้โดยใช้หุ่นยนต์ช่วยสอนเพื่อส่งเสริมทักษะการเขียนโปรแกรมและการคิดเชิงคำนวณ</p></div>
+        <div class="box"><h4>ลดอุปสรรคด้านทักษะการพิมพ์</h4><p>ใช้โปรแกรมแบบบล็อก (Microsoft MakeCode) เพื่อลดความซับซ้อนด้านภาษาอังกฤษ พร้อมทั้งมีระบบบนเว็บไซต์ที่สามารถตรวจสอบบล็อกโค้ดอัตโนมัติ</p></div>
+        <div class="box"><h4>รูปแบบการจัดการเรียนรู้ 5 ขั้น</h4><p>กิจกรรมการเรียนรู้ที่ท้าทาย ผ่านสถานการณ์จำลอง เช่น กิจกรรมภารกิจธีมสำรวจอวกาศ ผสานสื่อวิดีโอแอนิเมชันที่น่าสนใจ</p></div>
+        <div class="box"><h4>ชุดอุปกรณ์หุ่นยนต์ที่มีต้นทุนต่ำ</h4><p>มีประสิทธิภาพเพียงพอต่อการเรียนรู้ เพื่อให้โรงเรียนสามารถจัดหาได้ครอบคลุมจำนวนนักเรียน</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 วัตถุประสงค์ -->
+  <section class="isec" id="intro-obj" data-sec="วัตถุประสงค์ของโครงงาน">
+    <h2 class="ih"><b>2</b>วัตถุประสงค์ของโครงงาน</h2>
+    <ol class="obj">
+      <li><i>1</i><span>ศึกษาความต้องการในการจัดการเรียนรู้และพัฒนานวัตกรรม</span></li>
+      <li><i>2</i><span>พัฒนารูปแบบการจัดการเรียนรู้ 5 ขั้นร่วมกับหุ่นยนต์ช่วยสอน ROBOCART</span></li>
+      <li><i>3</i><span>ประเมินคุณภาพหุ่นยนต์และรูปแบบการจัดการเรียนรู้โดยผู้เชี่ยวชาญ</span></li>
+      <li><i>4</i><span>ประเมินความสามารถด้านการเขียนโปรแกรมและการคิดเชิงคำนวณของนักเรียน</span></li>
+      <li><i>5</i><span>ประเมินความพึงพอใจของนักเรียน</span></li>
+    </ol>
+  </section>
+
+  <!-- 3 ขอบเขต -->
+  <section class="isec" id="intro-scope" data-sec="ขอบเขตของโครงงาน">
+    <h2 class="ih"><b>3</b>ขอบเขตของโครงงาน</h2>
+    <h3 class="sub-h">ประชากรและกลุ่มตัวอย่าง</h3>
+    <div class="duo">
+      <div class="box tint-a"><span class="lbl">ประชากร</span><p>นักเรียนชั้นประถมศึกษา โรงเรียนบ้านแหลมแท่น</p></div>
+      <div class="box tint-b"><span class="lbl">กลุ่มตัวอย่าง</span><p>นักเรียนชั้นประถมศึกษาปีที่ 4/1 โรงเรียนบ้านแหลมแท่น จำนวน <strong>22 คน</strong> ได้มาจากการสุ่มตัวอย่างแบบกลุ่ม (Cluster Random Sampling) โดยใช้ห้องเรียนเป็นหน่วยในการสุ่มด้วยวิธีจับสลากจำนวน 1 ห้องเรียน</p></div>
+    </div>
+    <h3 class="sub-h">ขอบข่ายเนื้อหาสาระของเรื่องที่จะทำโครงงาน</h3>
+    <p class="sub-p">รูปแบบการจัดการเรียนรู้ที่ใช้ร่วมกับหุ่นยนต์ประกอบด้วยเนื้อหา 4 บท ดังนี้</p>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>บทที่</th><th>หัวข้อ</th><th>สาระสำคัญ</th></tr></thead>
+        <tbody>
+          <tr><td><b>1</b></td><td>แนะนำหุ่นยนต์ และโปรแกรม Microsoft MakeCode</td><td>แนะนำส่วนประกอบหน้าที่ การเชื่อมต่อของหุ่นยนต์ แนะนำองค์ประกอบต่างๆ บนโปรแกรม วิธีการ block coding เบื้องต้น</td></tr>
+          <tr><td><b>2</b></td><td>ควบคุมหุ่นยนต์ให้เคลื่อนที่</td><td>อธิบายหลักการทำงานของล้อ สอนเขียนโปรแกรมให้หุ่นเดินตรง-เลี้ยว</td></tr>
+          <tr><td><b>3</b></td><td>วิ่งตามเส้น</td><td>อธิบายหลักการทำงานของการอ่าน Infrared sensor สอนเขียนโปรแกรมให้หุ่นเดินตามเส้น</td></tr>
+          <tr><td><b>4</b></td><td>หลบหลีกวัตถุ</td><td>อธิบายหลักการทำงานของระยะห่างในการหลบสิ่งกีดขวาง สอนเขียนโปรแกรมให้หุ่นหลบสิ่งกีดขวาง</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 4 เครื่องมือ -->
+  <section class="isec" id="intro-tools" data-sec="เครื่องมือในการดำเนินโครงงาน">
+    <h2 class="ih"><b>4</b>เครื่องมือในการดำเนินโครงงาน</h2>
+    <div class="duo">
+      <div class="box tool">
+        <span class="lbl">ส่วนที่ 1</span><h4>เครื่องมือ วัสดุ อุปกรณ์ และโปรแกรม</h4>
+        <ul>
+          <li>หุ่นยนต์รถสองล้อฐานชั้นเดียว ใช้ micro:bit V2 เป็นหน่วยควบคุม ร่วมกับบอร์ดขับมอเตอร์ มอเตอร์เกียร์ และแหล่งจ่ายไฟ</li>
+          <li>เซนเซอร์ตรวจจับเส้นอินฟราเรดแบบดิจิทัล 5 จุด และเซนเซอร์อัลตราโซนิก 1 ตัว</li>
+          <li>คอมพิวเตอร์ และโปรแกรม Microsoft MakeCode for micro:bit</li>
+          <li>สื่อวีดิทัศน์ ใบกิจกรรม สำหรับเนื้อหาทั้ง 4 บท</li>
+        </ul>
+      </div>
+      <div class="box tool">
+        <span class="lbl">ส่วนที่ 2</span><h4>เครื่องมือสำหรับเก็บรวบรวมข้อมูล</h4>
+        <ul>
+          <li>แบบสอบถามความต้องการ</li>
+          <li>แบบประเมินคุณภาพหุ่นยนต์และรูปแบบการจัดการเรียนรู้</li>
+          <li>แบบประเมินความสามารถการเขียนโปรแกรมและการคิดเชิงคำนวณ</li>
+          <li>แบบประเมินความพึงพอใจของนักเรียนต่อรูปแบบการจัดการเรียนรู้โดยใช้หุ่นยนต์ช่วยสอน</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 แผนการดำเนินงาน -->
+  <section class="isec" id="intro-plan" data-sec="แผนการดำเนินงาน">
+    <h2 class="ih"><b>5</b>แผนการดำเนินงาน</h2>
+    <div class="plan">
+      <p>ระยะเวลาการดำเนินงานตั้งแต่เดือน <strong>สิงหาคม - ตุลาคม พ.ศ. 2569</strong></p>
+      <div class="months" aria-hidden="true"><span>ส.ค. 2569</span><span>ก.ย. 2569</span><span>ต.ค. 2569</span></div>
+    </div>
+  </section>
+
+  <!-- 6 กรอบแนวคิด (ย่อ/ขยายได้) -->
+  <section class="isec" id="intro-frame" data-sec="กรอบแนวคิดการวิจัย">
+    <h2 class="ih"><b>6</b>กรอบแนวคิดการวิจัย</h2>
+    <details class="fold" open>
+      <summary><span>แผนภาพกรอบแนวคิดการวิจัย</span><em class="fold-t"></em></summary>
+      <button class="shot frame" type="button" data-zoom="assets/framework.webp" data-alt="แผนภาพกรอบแนวคิดการวิจัย ROBOCART" aria-label="ขยายภาพกรอบแนวคิดการวิจัย">
+        <img src="assets/framework.webp" alt="กรอบแนวคิดการวิจัย: หลักสูตรแกนกลาง แนวคิดทักษะการเขียนโปรแกรมและการคิดเชิงคำนวณ แนวคิดการจัดการเรียนรู้โดยใช้หุ่นยนต์ และขอบข่ายเนื้อหา 4 บทเรียน นำเข้าสู่หลักการออกแบบ ADDIE MODEL เพื่อพัฒนารูปแบบการจัดการเรียนรู้และหุ่นยนต์ ได้ผลผลิตคือกระบวนการ 5 ขั้นตอน หุ่นยนต์ ROBOCART เว็บไซต์ ROBOCART Learning และสื่อวิดีโอแอนิเมชันและใบกิจกรรม และวัดผลด้วยการประเมินคุณภาพ ความสามารถ และความพึงพอใจ" loading="lazy">
+        <span class="zoom">TAP TO ZOOM</span>
+      </button>
+    </details>
+  </section>
+</template>
+
+<!-- ================= เนื้อหาหน้าวิธีการดำเนินการ (แก้ข้อความได้ตรงนี้) ================= -->
+<template id="tpl-method">
+  <!-- 1 ประชากรและกลุ่มตัวอย่าง -->
+  <section class="isec" id="method-pop" data-sec="ประชากรและกลุ่มตัวอย่าง">
+    <h2 class="ih"><b>1</b>ประชากรและกลุ่มตัวอย่าง</h2>
+    <div class="grp2">
+      <div class="box grp">
+        <span class="grp-tag">กลุ่มที่ 1</span>
+        <h3>กลุ่มประเมินแบบสอบถามความต้องการ</h3>
+        <dl>
+          <dt>ประชากร</dt><dd>ครูผู้สอนและนักเรียนระดับชั้นประถมศึกษา โรงเรียนบ้านแหลมแท่น</dd>
+          <dt>กลุ่มตัวอย่าง</dt><dd>จำนวนรวม <strong>30 คน</strong> (สุ่มแบบอย่างง่าย Simple Random Sampling)</dd>
+        </dl>
+        <div class="gp" style="--n:30;--min:28;--max:34">
+          <div class="gp-top"><span>การวิเคราะห์ขนาดกลุ่มตัวอย่าง (G*Power)</span></div>
+          <div class="gp-bar"><i class="gp-fill"></i><i class="gp-min"></i></div>
+          <div class="gp-leg"><span><b class="d1"></b>ขั้นต่ำ 28 คน</span><span><b class="d2"></b>ใช้จริง 30 คน</span></div>
+          <p>ขนาด 30 คนจึงเพียงพอต่อการวิเคราะห์</p>
+        </div>
+      </div>
+      <div class="box grp">
+        <span class="grp-tag">กลุ่มที่ 2</span>
+        <h3>กลุ่มทดลองรูปแบบการจัดการเรียนรู้</h3>
+        <dl>
+          <dt>ประชากร</dt><dd>นักเรียนชั้นประถมศึกษาปีที่ 4 โรงเรียนบ้านแหลมแท่น จำนวน 2 ห้องเรียน</dd>
+          <dt>กลุ่มตัวอย่าง</dt><dd>นักเรียนชั้นประถมศึกษาปีที่ 4/1 จำนวน <strong>22 คน</strong> (สุ่มแบบกลุ่ม Cluster Random Sampling โดยใช้ห้องเรียนเป็นหน่วยในการสุ่มด้วยการจับสลาก)</dd>
+        </dl>
+        <div class="gp" style="--n:22;--min:21;--max:34">
+          <div class="gp-top"><span>การวิเคราะห์ขนาดกลุ่มตัวอย่าง (G*Power)</span></div>
+          <div class="gp-bar"><i class="gp-fill"></i><i class="gp-min"></i></div>
+          <div class="gp-leg"><span><b class="d1"></b>ขั้นต่ำ 21 คน</span><span><b class="d2"></b>ใช้จริง 22 คน</span></div>
+          <p>ขนาด 22 คนจึงเพียงพอต่อการวิเคราะห์</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 เครื่องมือ -->
+  <section class="isec" id="method-tools" data-sec="เครื่องมือที่ใช้ในการศึกษา">
+    <h2 class="ih"><b>2</b>เครื่องมือและการสร้างเครื่องมือการวิจัย</h2>
+    <h3 class="sub-h">เครื่องมือที่ใช้ในการศึกษา</h3>
+    <ol class="tools5">
+      <li class="box"><i>1</i><span>แบบสอบถามความต้องการในการจัดการเรียนรู้และพัฒนานวัตกรรมหุ่นยนต์ช่วยสอน</span></li>
+      <li class="box"><i>2</i><span>รูปแบบการจัดการเรียนรู้โดยใช้หุ่นยนต์ช่วยสอน</span></li>
+      <li class="box"><i>3</i><span>แบบประเมินคุณภาพหุ่นยนต์และรูปแบบการจัดการเรียนรู้ <em>(สำหรับผู้เชี่ยวชาญ)</em></span></li>
+      <li class="box"><i>4</i><span>แบบประเมินความสามารถการเขียนโปรแกรมและการคิดเชิงคำนวณ <em>(เกณฑ์รูบิก 5 ด้าน คะแนนเต็ม 25 คะแนน)</em></span></li>
+      <li class="box"><i>5</i><span>แบบประเมินความพึงพอใจของนักเรียน <em>(มาตราส่วนประมาณค่า 5 ระดับ)</em></span></li>
+    </ol>
+  </section>
+
+  <!-- 3 การสร้างและหาคุณภาพเครื่องมือ (flowchart) -->
+  <section class="isec" id="method-build" data-sec="การสร้างและหาคุณภาพเครื่องมือ">
+    <h2 class="ih"><b>3</b>การสร้างและหาคุณภาพเครื่องมือ</h2>
+    <p class="sub-p">เลือกเครื่องมือเพื่อดูผังการสร้างและหาคุณภาพ</p>
+    <div class="ftabs" role="tablist" aria-label="เลือกเครื่องมือ">
+      <button role="tab" aria-selected="true" data-tab="fc1"><i>1</i>แบบสอบถามความต้องการ</button>
+      <button role="tab" aria-selected="false" data-tab="fc2"><i>2</i>รูปแบบการจัดการเรียนรู้ (ADDIE)</button>
+      <button role="tab" aria-selected="false" data-tab="fc3"><i>3</i>แบบประเมินคุณภาพ</button>
+      <button role="tab" aria-selected="false" data-tab="fc4"><i>4</i>แบบประเมินความสามารถ</button>
+      <button role="tab" aria-selected="false" data-tab="fc5"><i>5</i>แบบประเมินความพึงพอใจ</button>
+    </div>
+
+    <div class="fc" id="fc1" role="tabpanel">
+      <div class="fc-start">แบบสอบถามความต้องการในการจัดการเรียนรู้และพัฒนานวัตกรรมหุ่นยนต์ช่วยสอน</div>
+      <div class="fc-ar"></div>
+      <div class="fc-node"><span class="fc-k">ลักษณะเครื่องมือ</span><p>แบบสำรวจและเลือกตอบจำนวน <strong>15 ข้อ</strong> ครอบคลุม 3 ด้าน</p><div class="chips"><span>ด้านเนื้อหา/หลักสูตร</span><span>ด้านรูปแบบกิจกรรม/สื่อ</span><span>ด้านคุณลักษณะฮาร์ดแวร์ของหุ่นยนต์</span></div></div>
+      <div class="fc-ar"></div>
+      <div class="fc-node"><span class="fc-k">การหาคุณภาพ</span><p>ตรวจสอบประเมินความตรงเชิงเนื้อหาโดย <strong>ผู้เชี่ยวชาญ 5 ท่าน</strong></p></div>
+      <div class="fc-ar"></div>
+      <div class="fc-end"><b>IOC 0.67 – 1.00</b><span>ผ่านเกณฑ์ทุกข้อ ✓</span></div>
+    </div>
+
+    <div class="fc" id="fc2" role="tabpanel" hidden>
+      <div class="fc-start">กระบวนการพัฒนารูปแบบการจัดการเรียนรู้โดยใช้หุ่นยนต์ช่วยสอน<small>ดำเนินการตามกระบวนการออกแบบของ ADDIE Model ทั้ง 5 ขั้นตอน</small></div>
+      <div class="fc-ar"></div>
+      <div class="fc-node addie" style="--c:#e85d3f"><span class="ad-l">A</span><div><span class="fc-k">ขั้นที่ 1 วิเคราะห์ (Analysis)</span><div class="chips"><span>การสำรวจความต้องการ</span><span>การวิเคราะห์เนื้อหาและหลักสูตร</span><span>การศึกษาค้นคว้าข้อมูลผู้เรียนและเทคโนโลยีที่เกี่ยวข้อง</span><span>การศึกษาวิเคราะห์เพื่อพัฒนารูปแบบการจัดการเรียนการสอน</span></div></div></div>
+      <div class="fc-ar"></div>
+      <div class="fc-node addie" style="--c:#f59e0b"><span class="ad-l">D</span><div><span class="fc-k">ขั้นที่ 2 ออกแบบ (Design)</span><div class="chips"><span>ออกแบบโครงสร้างเนื้อหา</span><span>ออกแบบผังงานกระบวนการจัดการเรียนรู้</span><span>ออกแบบหุ่นยนต์</span><span>ออกแบบเว็บไซต์</span><span>เขียนสตอรี่บอร์ดสื่อวิดีโอ</span></div></div></div>
+      <div class="fc-ar"></div>
+      <div class="fc-node addie" style="--c:#10b981"><span class="ad-l">D</span><div><span class="fc-k">ขั้นที่ 3 พัฒนา (Development)</span><div class="chips"><span>พัฒนารูปแบบการจัดการเรียนรู้</span><span>ประกอบหุ่นยนต์ ROBOCART</span><span>พัฒนาเว็บไซต์พร้อมระบบตรวจโค้ด</span><span>ผลิตวิดีโอแอนิเมชันและวิดีโอความรู้</span><span>ผู้เชี่ยวชาญ 5 ท่านประเมินคุณภาพก่อนนำไปใช้จริง</span></div></div></div>
+      <div class="fc-ar"></div>
+      <div class="fc-node addie" style="--c:#3b82f6"><span class="ad-l">I</span><div><span class="fc-k">ขั้นที่ 4 นำไปใช้ (Implementation)</span><div class="chips"><span>ทดลองจัดกิจกรรมการเรียนรู้จริงกับนักเรียนชั้น ป.4/1 โรงเรียนบ้านแหลมแท่น (22 คน) ในเนื้อหาบทที่ 2 ตามกระบวนการ 5 ขั้นตอน</span><span>ประเมินทักษะของนักเรียนระหว่างทำกิจกรรม</span><span>เก็บความพึงพอใจของนักเรียน</span></div></div></div>
+      <div class="fc-ar"></div>
+      <div class="fc-node addie" style="--c:#8b5cf6"><span class="ad-l">E</span><div><span class="fc-k">ขั้นที่ 5 ประเมินผล (Evaluation)</span><div class="chips"><span>ประเมินผลความสามารถการเขียนโปรแกรมและการคิดเชิงคำนวณด้วยเกณฑ์รูบิก</span><span>ประเมินความพึงพอใจของนักเรียน</span></div></div></div>
+    </div>
+
+    <div class="fc" id="fc3" role="tabpanel" hidden>
+      <div class="fc-start">แบบประเมินคุณภาพหุ่นยนต์และรูปแบบการจัดการเรียนรู้</div>
+      <div class="fc-ar"></div>
+      <div class="fc-node"><span class="fc-k">ลักษณะเครื่องมือ</span><p>มาตราส่วนประมาณค่า (Rating Scale) <strong>5 ระดับ</strong> ครอบคลุม 3 ด้าน</p><div class="chips"><span>ด้านระบบการทำงานของหุ่นยนต์</span><span>ด้านเนื้อหาและสื่อการเรียนรู้</span><span>ด้านการออกแบบกิจกรรมการเรียนรู้</span></div></div>
+      <div class="fc-ar"></div>
+      <div class="fc-node"><span class="fc-k">การหาคุณภาพ</span><p>ตรวจสอบความตรงเชิงเนื้อหาโดย <strong>ผู้เชี่ยวชาญ 5 ท่าน</strong></p></div>
+      <div class="fc-ar"></div>
+      <div class="fc-end"><b>IOC 0.67 – 1.00</b><span>ผ่านเกณฑ์ทุกข้อ ✓</span></div>
+    </div>
+
+    <div class="fc" id="fc4" role="tabpanel" hidden>
+      <div class="fc-start">แบบประเมินความสามารถการเขียนโปรแกรมและการคิดเชิงคำนวณ</div>
+      <div class="fc-ar"></div>
+      <div class="fc-node"><span class="fc-k">ลักษณะเครื่องมือ</span><p>เกณฑ์การประเมินแบบรูบิก (Rubric) ครอบคลุม <strong>5 ด้าน</strong></p><div class="chips"><span>การออกแบบโค้ดอย่างง่าย</span><span>การวางแผนเส้นทาง</span><span>ทักษะการปฏิบัติงานจริง</span><span>การตรวจหาและแก้ไขข้อผิดพลาด (Debugging)</span><span>การทำงานเป็นทีม</span></div></div>
+      <div class="fc-ar"></div>
+      <div class="fc-node"><span class="fc-k">เกณฑ์คะแนน</span><p>ด้านละ 5 คะแนน (คะแนนเต็ม <strong>25 คะแนน</strong>) แปลระดับคุณภาพเป็น</p>
+        <div class="scale">
+          <span style="--c:#10b981"><b>ดีมาก</b>21–25</span><span style="--c:#3b82f6"><b>ดี</b>16–20</span><span style="--c:#f59e0b"><b>ปานกลาง</b>11–15</span><span style="--c:#fb7a3c"><b>พอใช้</b>6–10</span><span style="--c:#e5484d"><b>ควรปรับปรุง</b>1–5</span>
+        </div>
+      </div>
+      <div class="fc-ar"></div>
+      <div class="fc-end"><b>ตรวจความตรงเชิงเนื้อหา</b><span>โดยอาจารย์ที่ปรึกษา ✓</span></div>
+    </div>
+
+    <div class="fc" id="fc5" role="tabpanel" hidden>
+      <div class="fc-start">แบบประเมินความพึงพอใจของนักเรียน</div>
+      <div class="fc-ar"></div>
+      <div class="fc-node"><span class="fc-k">ลักษณะเครื่องมือ</span><p>มาตราส่วนประมาณค่า (Rating Scale) <strong>5 ระดับ</strong> ครอบคลุม 3 ด้าน</p><div class="chips"><span>ด้านหุ่นยนต์และอุปกรณ์</span><span>ด้านสื่อประกอบการเรียนรู้</span><span>ด้านรูปแบบกิจกรรมการเรียนรู้</span></div></div>
+      <div class="fc-ar"></div>
+      <div class="fc-node"><span class="fc-k">การหาคุณภาพ</span><p>ตรวจสอบความตรงเชิงเนื้อหาโดย <strong>ผู้เชี่ยวชาญ 5 ท่าน</strong></p></div>
+      <div class="fc-ar"></div>
+      <div class="fc-end"><b>IOC 0.67 – 1.00</b><span>ผ่านเกณฑ์ทุกข้อ ✓</span></div>
+    </div>
+  </section>
+
+  <!-- 4 การเก็บรวบรวมข้อมูล -->
+  <section class="isec" id="method-collect" data-sec="การเก็บรวบรวมข้อมูล">
+    <h2 class="ih"><b>4</b>การเก็บรวบรวมข้อมูล</h2>
+    <ol class="tl">
+      <li class="box"><i>1</i><p>ติดต่อขอความอนุเคราะห์จากโรงเรียนบ้านแหลมแท่นเพื่อขออนุญาตทดลองใช้และเก็บข้อมูลวิจัย</p></li>
+      <li class="box"><i>2</i><p>ชี้แจงวัตถุประสงค์และขั้นตอนการจัดกิจกรรมแก่นักเรียนกลุ่มตัวอย่างชั้น ป.4/1</p></li>
+      <li class="box"><i>3</i><p>จัดกิจกรรมการเรียนรู้ตามแผนบทที่ 2 และประเมินความสามารถการเขียนโปรแกรมและการคิดเชิงคำนวณของผู้เรียนรายบุคคลระหว่างปฏิบัติกิจกรรมด้วยเกณฑ์รูบิก</p></li>
+      <li class="box"><i>4</i><p>ให้นักเรียนตอบแบบประเมินความพึงพอใจหลังเสร็จสิ้นกิจกรรม</p></li>
+    </ol>
+  </section>
+
+  <!-- 5 การวิเคราะห์ข้อมูล -->
+  <section class="isec" id="method-analysis" data-sec="การวิเคราะห์ข้อมูล">
+    <h2 class="ih"><b>5</b>การวิเคราะห์ข้อมูล</h2>
+    <div class="an3">
+      <div class="box an"><span class="an-ic">🤖</span><h4>คุณภาพหุ่นยนต์และรูปแบบการจัดการเรียนรู้</h4><p>คำนวณหาค่าเฉลี่ยและส่วนเบี่ยงเบนมาตรฐานจากการประเมินของผู้เชี่ยวชาญ 5 ท่าน</p><div class="stat-chips"><span>X̅</span><span>S.D.</span></div></div>
+      <div class="box an"><span class="an-ic">😊</span><h4>ความพึงพอใจของนักเรียน</h4><p>คำนวณหาค่าเฉลี่ย ส่วนเบี่ยงเบนมาตรฐาน และทดสอบสมมติฐานเปรียบเทียบกับเกณฑ์ระดับมาก (3.50)</p><div class="stat-chips"><span>X̅</span><span>S.D.</span><span>One-Sample t-test</span></div></div>
+      <div class="box an"><span class="an-ic">💻</span><h4>ความสามารถการเขียนโปรแกรมและการคิดเชิงคำนวณ</h4><p>ประเมินคะแนนรายบุคคลจากเกณฑ์รูบิก 5 ด้าน แปลความหมายระดับคุณภาพ</p><div class="stat-chips"><span>ดีมาก</span><span>ดี</span><span>ปานกลาง</span><span>พอใช้</span><span>ควรปรับปรุง</span></div></div>
+    </div>
+  </section>
+</template>
+
+<!-- ================= เนื้อหาหน้าผลการพัฒนา (แก้ข้อความได้ตรงนี้) ================= -->
+<template id="tpl-result">
+  <!-- ตอนที่ 1 -->
+  <section class="isec" id="result-need" data-sec="ตอนที่ 1 ผลการวิเคราะห์ความต้องการ">
+    <h2 class="ih"><b>1</b>ผลการวิเคราะห์ความต้องการ</h2>
+    <div class="rings">
+      <div class="box ringc" style="--p:1"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="rg-bg" cx="60" cy="60" r="52"/><circle class="rg-fg" cx="60" cy="60" r="52"/></svg><b class="rg-n"><span data-count="100" data-dec="0">0</span>%</b><p>ต้องการเรียนแบบ <strong>Block Programming</strong></p></div>
+      <div class="box ringc" style="--p:.9333"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="rg-bg" cx="60" cy="60" r="52"/><circle class="rg-fg" cx="60" cy="60" r="52"/></svg><b class="rg-n"><span data-count="93.33" data-dec="2">0</span>%</b><p>กิจกรรม<strong>ลงมือปฏิบัติจริงเป็นกลุ่ม</strong></p></div>
+      <div class="box ringc" style="--p:.9667"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="rg-bg" cx="60" cy="60" r="52"/><circle class="rg-fg" cx="60" cy="60" r="52"/></svg><b class="rg-n"><span data-count="96.67" data-dec="2">0</span>%</b><p><strong>ธีมภารกิจผจญภัย</strong></p></div>
+    </div>
+  </section>
+
+  <!-- ตอนที่ 2 -->
+  <section class="isec" id="result-work" data-sec="ตอนที่ 2 ผลงานนวัตกรรมที่พัฒนาสำเร็จ">
+    <h2 class="ih"><b>2</b>ผลงานนวัตกรรมที่พัฒนาสำเร็จ</h2>
+    <h3 class="sub-h">หุ่นยนต์ ROBOCART</h3>
+    <div class="slider" aria-roledescription="carousel" aria-label="ภาพหุ่นยนต์ ROBOCART">
+      <div class="sl-track" tabindex="0">
+        <figure class="sl-item"><img src="assets/robot-l1.webp" alt="หุ่นยนต์ ROBOCART Level 1 ชุดเคลื่อนที่พื้นฐาน micro:bit บนบอร์ด REKA:BIT และฐาน ROBO BASE MINI" loading="lazy"><figcaption><b style="--c:var(--lv1)">LEVEL 1</b>ควบคุมหุ่นยนต์ให้เคลื่อนที่</figcaption></figure>
+        <figure class="sl-item"><img src="assets/robot-l2.webp" alt="หุ่นยนต์ ROBOCART Level 2 ติดเซนเซอร์ Maker Line ด้านล่างสำหรับวิ่งตามเส้น" loading="lazy"><figcaption><b style="--c:var(--lv2)">LEVEL 2</b>ควบคุมหุ่นยนต์วิ่งตามเส้น · เซนเซอร์ Maker Line</figcaption></figure>
+        <figure class="sl-item"><img src="assets/robot-l3.webp" alt="หุ่นยนต์ ROBOCART Level 3 ติดเซอร์โวและเซนเซอร์อัลตราโซนิก HC-SR04 ด้านหน้า" loading="lazy"><figcaption><b style="--c:var(--lv3)">LEVEL 3</b>ควบคุมหุ่นยนต์หลบหลีกวัตถุ · เซอร์โว + อัลตราโซนิก</figcaption></figure>
+      </div>
+      <button class="sl-btn prev" type="button" aria-label="ภาพก่อนหน้า">‹</button>
+      <button class="sl-btn next" type="button" aria-label="ภาพถัดไป">›</button>
+      <div class="sl-dots" role="tablist"></div>
+    </div>
+
+    <h3 class="sub-h" style="margin-top:34px">เว็บไซต์ ROBOCART LEARNING CENTER</h3>
+    <div class="browser">
+      <div class="br-bar"><i></i><i></i><i></i><span>edu-robocart.github.io/learning</span><a href="https://edu-robocart.github.io/learning/" target="_blank" rel="noopener">เปิดแท็บใหม่ ↗</a></div>
+      <a class="br-shot" href="https://edu-robocart.github.io/learning/" target="_blank" rel="noopener">
+        <img src="assets/lc-screenshot.webp" alt="หน้าเว็บ ROBOCART LEARNING CENTER บทที่ 1 แนะนำหุ่นยนต์และโปรแกรม Microsoft MakeCode เบื้องต้น พร้อมสารบัญบทเรียน โหมดคุณครู และวิดีโอการ์ตูนสถานการณ์จำลอง" loading="lazy">
+        <span class="br-hint">คลิกเพื่อเข้าสู่เว็บไซต์ <i aria-hidden="true">↗</i></span>
+      </a>
+    </div>
+    <div class="cta-c"><a class="lc-go big" href="https://edu-robocart.github.io/learning/" target="_blank" rel="noopener">เข้าสู่เว็บไซต์ ROBOCART LEARNING CENTER <i aria-hidden="true">→</i></a></div>
+  </section>
+
+  <!-- ตอนที่ 3 -->
+  <section class="isec" id="result-expert" data-sec="ตอนที่ 3 ผลการประเมินคุณภาพโดยผู้เชี่ยวชาญ">
+    <h2 class="ih"><b>3</b>ผลการประเมินคุณภาพโดยผู้เชี่ยวชาญ (5 ท่าน)</h2>
+    <div class="box score">
+      <div class="sc-big"><small>คะแนนเฉลี่ย (X̅)</small><b data-count="4.53" data-dec="2">0</b><span>/ 5.00</span></div>
+      <div class="sc-body">
+        <span class="lvl-badge">ระดับมากที่สุด</span>
+        <p>คุณภาพภาพรวมของหุ่นยนต์และรูปแบบการจัดการเรียนรู้อยู่ในระดับมากที่สุด</p>
+        <div class="gauge" style="--v:4.53"><i class="g-fill"></i></div>
+        <div class="g-ticks"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>
+        <div class="stat-chips"><span>X̅ = 4.53</span><span>S.D. = 0.54</span><span>ผู้เชี่ยวชาญ 5 ท่าน</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ตอนที่ 4 -->
+  <section class="isec" id="result-skill" data-sec="ตอนที่ 4 ผลการประเมินทักษะการเขียนโปรแกรมและการคิดเชิงคำนวณ">
+    <h2 class="ih"><b>4</b>ผลการประเมินทักษะการเขียนโปรแกรมและการคิดเชิงคำนวณ</h2>
+    <div class="box score">
+      <div class="sc-big green"><small>ระดับดีมาก</small><b><span data-count="90.91" data-dec="2">0</span>%</b><span>20 จาก 22 คน</span></div>
+      <div class="sc-body">
+        <p>นักเรียนชั้นประถมศึกษาปีที่ 4/1 จำนวน 22 คน พบว่าในภาพรวมนักเรียนมีความสามารถด้านการเขียนโปรแกรมและการคิดเชิงคำนวณจากการปฏิบัติภารกิจอยู่ใน<strong>ระดับดีมาก 90.91%</strong></p>
+        <div class="kids" aria-label="นักเรียนระดับดีมาก 20 จาก 22 คน"></div>
+        <div class="gp-leg"><span><b class="d2"></b>ระดับดีมาก</span><span><b class="d0"></b>ระดับอื่น</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ตอนที่ 5 -->
+  <section class="isec" id="result-sat" data-sec="ตอนที่ 5 ผลการประเมินความพึงพอใจของนักเรียน">
+    <h2 class="ih"><b>5</b>ผลการประเมินความพึงพอใจของนักเรียน</h2>
+    <div class="box score">
+      <div class="sc-big pink"><small>คะแนนเฉลี่ย (X̅)</small><b data-count="4.77" data-dec="2">0</b><span>/ 5.00</span></div>
+      <div class="sc-body">
+        <span class="lvl-badge">ระดับมากที่สุด</span>
+        <p>ความพึงพอใจในภาพรวมอยู่ในระดับมากที่สุด</p>
+        <div class="gauge pink" style="--v:4.77"><i class="g-fill"></i><i class="g-mark" style="--m:3.5"><em>เกณฑ์ 3.50</em></i></div>
+        <div class="g-ticks"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>
+        <div class="stat-chips"><span>X̅ = 4.77</span><span>S.D. = 0.42</span></div>
+        <div class="ttest"><b>One-sample t-test</b><span>สูงกว่าเกณฑ์ 3.50 อย่างมีนัยสำคัญทางสถิติ ✓</span></div>
+      </div>
+    </div>
+  </section>
+</template>
+
+<!-- ================= เนื้อหาหน้าสรุปและอภิปรายผล (แก้ข้อความได้ตรงนี้) ================= -->
+<template id="tpl-conclusion">
+  <section class="isec" id="con-sum" data-sec="สรุปผลการวิจัย">
+    <h2 class="ih"><b>1</b>สรุปผลการวิจัย</h2>
+    <div class="sum5">
+      <div class="box sm"><span class="sm-ic">🎯</span><h4>ความต้องการ</h4><p>ครูและนักเรียนต้องการเรียนรู้ด้วย Block Programming ผ่านภารกิจผจญภัยและการลงมือปฏิบัติจริงเป็นกลุ่ม ร่วมกับหุ่นยนต์ขนาดกะทัดรัด ปลอดภัย และมีเซนเซอร์ครบถ้วนในงบประมาณที่เหมาะสม</p></div>
+      <div class="box sm"><span class="sm-ic">🛠️</span><h4>การพัฒนานวัตกรรม</h4><p>ได้รูปแบบการจัดการเรียนรู้ 5 ขั้นตอน (กำหนดสถานการณ์ปัญหา นำเสนอความรู้ มอบหมายภารกิจ เชื่อมโยงผลกิจกรรม นำเสนออย่างสร้างสรรค์) พร้อมหุ่นยนต์ ROBOCART, วิดีโอแอนิเมชัน และเว็บไซต์ตรวจโค้ดอัตโนมัติ</p></div>
+      <div class="box sm"><span class="sm-ic">⭐</span><h4>คุณภาพหุ่นยนต์และรูปแบบการจัดการเรียนรู้</h4><p>ผู้เชี่ยวชาญ 5 ท่าน ประเมินคุณภาพในภาพรวมอยู่ในระดับมากที่สุด</p></div>
+      <div class="box sm"><span class="sm-ic">💻</span><h4>ความสามารถของผู้เรียน</h4><p>นักเรียนชั้น ป.4/1 (22 คน) มีทักษะการเขียนโปรแกรมและการคิดเชิงคำนวณอยู่ในระดับดีมาก</p></div>
+      <div class="box sm"><span class="sm-ic">😊</span><h4>ความพึงพอใจ</h4><p>นักเรียนมีความพึงพอใจในภาพรวมระดับมากที่สุด ซึ่งสูงกว่าเกณฑ์อย่างมีนัยสำคัญทางสถิติ</p></div>
+    </div>
+  </section>
+
+  <section class="isec" id="con-disc" data-sec="อภิปรายผล">
+    <h2 class="ih"><b>2</b>อภิปรายผล</h2>
+    <div class="acc">
+      <details class="box ac" open><summary><i>1</i>ด้านความต้องการ</summary><p>การเลือกใช้ Block Programming ช่วยแก้ปัญหาข้อจำกัดเรื่องการพิมพ์และข้อผิดพลาดทางไวยากรณ์ (Syntax Errors) ส่วนหุ่นยนต์ต้นทุนต่ำช่วยลดข้อจำกัดด้านอุปกรณ์</p><div class="refs"><span>Sentance และคณะ (2017)</span></div></details>
+      <details class="box ac"><summary><i>2</i>ด้านการพัฒนารูปแบบและนวัตกรรม</summary><p>การออกแบบตามกรอบ ADDIE ที่ผสานแนวคิด PBL, คอนสตรัคชั่นนิสม์ และ Scaffolding ช่วยเปลี่ยนนามธรรมให้เป็นรูปธรรม และระบบผลย้อนกลับอัตโนมัติ</p><div class="refs"><span>Jiang และคณะ (2022)</span><span>Kang &amp; Huang (2024)</span></div></details>
+      <details class="box ac"><summary><i>3</i>ด้านคุณภาพหุ่นยนต์และรูปแบบการจัดการเรียนรู้</summary><p>ความเหมาะสมของหุ่นยนต์และความยากง่ายของบทเรียนที่เรียงลำดับอย่างเป็นระบบ ช่วยส่งเสริมตรรกะและทัศนคติที่ดี</p><div class="refs"><span>Sentance และคณะ (2017)</span><span>Mehrotra และคณะ (2021)</span><span>Kucuk &amp; Sisman (2018)</span></div></details>
+      <details class="box ac"><summary><i>4</i>ด้านความสามารถของผู้เรียน</summary><p>รูปแบบการสอน 5 ขั้นตอนและระบบตรวจสอบโค้ดบนเว็บไซต์ที่ช่วยให้นักเรียนแก้ไขข้อบกพร่อง (Debugging) ได้ด้วยตนเอง</p><div class="refs"><span>Browning (2022)</span><span>Parvathy และคณะ (2025)</span></div></details>
+      <details class="box ac"><summary><i>5</i>ด้านความพึงพอใจ</summary><p>การใช้ธีมภารกิจสำรวจอวกาศ การทำงานเป็นทีม และการเปิดโอกาสให้ลองผิดลองถูกอย่างอิสระ ช่วยสร้างแรงจูงใจภายในและลดความเครียด</p><div class="refs"><span>วีระพงษ์ จันทรเสนา (2563)</span></div></details>
+    </div>
+  </section>
+
+  <section class="isec" id="con-sug" data-sec="ข้อเสนอแนะ">
+    <h2 class="ih"><b>3</b>ข้อเสนอแนะ</h2>
+    <div class="sug2">
+      <div class="box sg"><h3 class="sg-h use">ข้อเสนอแนะในการนำผลไปใช้</h3>
+        <ul class="chk">
+          <li>นำรูปแบบการจัดการเรียนรู้ไปบูรณาการในรายวิชาวิทยาการคำนวณตามตัวชี้วัดหลักสูตร</li>
+          <li>เตรียมความพร้อมของเครือข่ายอินเทอร์เน็ต คอมพิวเตอร์ และแบตเตอรี่หุ่นยนต์ล่วงหน้า</li>
+          <li>ครูควรปรับบทบาทเป็นผู้อำนวยความสะดวก (Facilitator) และกระตุ้นให้นักเรียนแก้ปัญหาด้วยตนเอง</li>
+          <li>จัดกลุ่มผู้เรียนแบบคละความสามารถ เพื่อส่งเสริมทักษะการทำงานเป็นทีม (Soft Skills)</li>
+          <li>จัดเตรียมพื้นที่ห้องเรียนให้กว้างขวางสำหรับการทดสอบวิ่งหุ่นยนต์</li>
+        </ul>
+      </div>
+      <div class="box sg"><h3 class="sg-h next">ข้อเสนอแนะสำหรับการวิจัยครั้งต่อไป</h3>
+        <ul class="chk rocket">
+          <li>พัฒนาและเพิ่มเซนเซอร์ขั้นสูง เช่น กล้อง AI เพื่อต่อยอดไปสู่ระดับมัธยมศึกษา</li>
+          <li>ประยุกต์ใช้เทคโนโลยี Generative AI ในระบบตรวจโค้ดเพื่อให้คำแนะนำแบบโต้ตอบที่เป็นธรรมชาติ</li>
+          <li>พัฒนาระบบตรวจสอบ Block Code ให้รองรับการทำงานแบบออฟไลน์ (Offline Mode)</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</template>
+
+<!-- ================= เล่มประกอบโครงงาน (หน้าเล่มอยู่ในโฟลเดอร์ assets/book) ================= -->
+<template id="tpl-book">
+  <section class="isec" id="book-pdf" data-sec="เล่มประกอบโครงงาน">
+    <h2 class="ih"><b>📘</b>เล่มประกอบโครงงาน</h2>
+    <p class="sub-p" style="margin-bottom:16px">กดลูกศรซ้าย–ขวา ปัดหน้าจอ หรือใช้ปุ่มลูกศรบนคีย์บอร์ดเพื่อเปลี่ยนหน้า · เลือกบทเพื่อข้ามไปได้ทันที</p>
+    <div class="flip" id="flip-book" data-dir="assets/book" data-n="110" tabindex="0" aria-label="เล่มประกอบโครงงาน 110 หน้า">
+      <div class="fl-bar">
+        <span class="pdf-t"><i>PDF</i>โครงงาน.pdf <small>· 110 หน้า</small></span>
+        <button class="pdf-btn" type="button" data-fs="flip-book">⛶ เต็มจอ</button>
+        <a class="pdf-btn" href="https://drive.google.com/file/d/1hIjPWG-PfzUvEXWk_JqoCQ2vvx5zUqdO/view?usp=sharing" target="_blank" rel="noopener">Google Drive ↗</a>
+        <a class="pdf-btn hot" href="https://drive.google.com/uc?export=download&amp;id=1hIjPWG-PfzUvEXWk_JqoCQ2vvx5zUqdO" target="_blank" rel="noopener">⬇ ดาวน์โหลด</a>
+      </div>
+      <div class="fl-toc">
+        <button type="button" data-page="1">ปก</button><button type="button" data-page="2">กิตติกรรมประกาศ</button><button type="button" data-page="3">บทคัดย่อ</button><button type="button" data-page="4">สารบัญ</button>
+        <button type="button" data-page="8">บทที่ 1</button><button type="button" data-page="15">บทที่ 2</button><button type="button" data-page="27">บทที่ 3</button><button type="button" data-page="54">บทที่ 4</button><button type="button" data-page="70">บทที่ 5</button>
+        <button type="button" data-page="77">บรรณานุกรม</button><button type="button" data-page="79">ภาคผนวก</button>
+      </div>
+      <div class="fl-stage">
+        <button class="fl-nav prev" type="button" aria-label="หน้าก่อนหน้า">‹</button>
+        <div class="fl-page"><img alt="" draggable="false"></div>
+        <button class="fl-nav next" type="button" aria-label="หน้าถัดไป">›</button>
+      </div>
+      <div class="fl-foot">
+        <button class="fl-step" type="button" data-step="-10" aria-label="ย้อน 10 หน้า">«</button>
+        <input class="fl-range" type="range" min="1" value="1" aria-label="เลือกหน้า">
+        <button class="fl-step" type="button" data-step="10" aria-label="ไปอีก 10 หน้า">»</button>
+        <span class="fl-num">หน้า <input class="fl-in" type="number" min="1" value="1" aria-label="เลขหน้า"> / <b class="fl-tot"></b></span>
+      </div>
+    </div>
+  </section>
+</template>
+
+<!-- ================= ภาคผนวก (แก้ข้อความได้ตรงนี้) ================= -->
+<template id="tpl-appendix">
+  <section class="isec" id="appx-parts" data-sec="ส่วนประกอบหุ่นยนต์ ROBOCART">
+    <h2 class="ih"><b>1</b>ส่วนประกอบหุ่นยนต์ ROBOCART</h2>
+    <div class="parts">
+      <figure class="box part"><span class="pt-lv" style="--c:var(--lv1)">พื้นฐาน</span><img src="assets/c-microbit.webp" alt="บอร์ด micro:bit V2" loading="lazy"><figcaption><h4>micro:bit V2</h4><p>บอร์ดไมโครคอนโทรลเลอร์ สมองของหุ่นยนต์ รับโปรแกรมที่เขียนจาก Microsoft MakeCode</p></figcaption></figure>
+      <figure class="box part"><span class="pt-lv" style="--c:var(--lv1)">พื้นฐาน</span><img src="assets/c-reka.webp" alt="บอร์ด REKA:BIT" loading="lazy"><figcaption><h4>REKA:BIT</h4><p>บอร์ดขยายสำหรับ micro:bit ใช้ขับมอเตอร์ทั้งสองข้าง และมีพอร์ตสำหรับต่อเซนเซอร์และเซอร์โว</p></figcaption></figure>
+      <figure class="box part"><span class="pt-lv" style="--c:var(--lv1)">พื้นฐาน</span><img src="assets/c-motor.webp" alt="มอเตอร์เกียร์ TT Motor" loading="lazy"><figcaption><h4>มอเตอร์เกียร์ (TT Motor)</h4><p>ขับเคลื่อนล้อซ้ายและขวา ใช้เรียนการเคลื่อนที่ เดินตรงและเลี้ยว</p></figcaption></figure>
+      <figure class="box part"><span class="pt-lv" style="--c:var(--lv1)">พื้นฐาน</span><img src="assets/c-wheel.webp" alt="ล้อยาง 2 ล้อ" loading="lazy"><figcaption><h4>ล้อยาง</h4><p>ล้อ 2 ข้างที่ต่อกับมอเตอร์เกียร์ ช่วยให้หุ่นยนต์เคลื่อนที่ได้มั่นคง</p></figcaption></figure>
+      <figure class="box part"><span class="pt-lv" style="--c:var(--lv1)">พื้นฐาน</span><img src="assets/c-battery.webp" alt="รังถ่าน 18650" loading="lazy"><figcaption><h4>รังถ่าน 18650</h4><p>แหล่งจ่ายไฟของหุ่นยนต์ ต่อเข้ากับช่องจ่ายไฟของบอร์ด REKA:BIT</p></figcaption></figure>
+      <figure class="box part"><span class="pt-lv" style="--c:var(--lv1)">พื้นฐาน</span><img src="assets/c-cable.webp" alt="สายเชื่อมต่อเซนเซอร์ 4 เส้น" loading="lazy"><figcaption><h4>สายเชื่อมต่อเซนเซอร์</h4><p>สาย 4 เส้นสำหรับต่อเซนเซอร์เข้ากับพอร์ตบนบอร์ด REKA:BIT</p></figcaption></figure>
+      <figure class="box part"><span class="pt-lv" style="--c:var(--lv2)">Level 2</span><img src="assets/c-makerline.webp" alt="เซนเซอร์ Maker Line" loading="lazy"><figcaption><h4>Maker Line</h4><p>เซนเซอร์ตรวจจับเส้นอินฟราเรดแบบดิจิทัล 5 จุด ติดใต้หุ่นยนต์เพื่อวิ่งตามเส้น</p></figcaption></figure>
+      <figure class="box part"><span class="pt-lv" style="--c:var(--lv3)">Level 3</span><img src="assets/c-sonar.webp" alt="เซนเซอร์อัลตราโซนิก HC-SR04" loading="lazy"><figcaption><h4>HC-SR04</h4><p>เซนเซอร์อัลตราโซนิกวัดระยะ ใช้ตรวจจับสิ่งกีดขวางด้านหน้าหุ่นยนต์</p></figcaption></figure>
+      <figure class="box part"><span class="pt-lv" style="--c:var(--lv3)">Level 3</span><img src="assets/c-servo.webp" alt="เซอร์โวมอเตอร์ SG90" loading="lazy"><figcaption><h4>เซอร์โว SG90</h4><p>หมุนเซนเซอร์อัลตราโซนิกไปซ้าย–ขวา 0–180° เพื่อสแกนหาเส้นทางว่าง</p></figcaption></figure>
+    </div>
+  </section>
+
+  <section class="isec" id="appx-photos" data-sec="ภาพบรรยากาศการจัดกิจกรรม">
+    <h2 class="ih"><b>2</b>ภาพบรรยากาศการจัดกิจกรรมการเรียนรู้</h2>
+    <p class="sub-p" style="margin-bottom:16px">ของนักเรียนชั้นประถมศึกษาปีที่ 4/1 โรงเรียนบ้านแหลมแท่น · กดที่ภาพเพื่อดูภาพขยาย</p>
+    <div class="gal">
+      <button class="gph g-wide" type="button" data-zoom="assets/act-1.webp" data-alt="นักเรียนชมวิดีโอแอนิเมชันสถานการณ์ปัญหาในห้องคอมพิวเตอร์"><img src="assets/act-1.webp" alt="นักเรียนชมวิดีโอแอนิเมชันสถานการณ์ปัญหาในห้องคอมพิวเตอร์" loading="lazy"><span>ชมวิดีโอแอนิเมชันสถานการณ์ปัญหา</span></button>
+      <button class="gph" type="button" data-zoom="assets/act-2.webp" data-alt="ผู้สอนอธิบายส่วนประกอบหุ่นยนต์ ROBOCART ให้นักเรียน"><img src="assets/act-2.webp" alt="ผู้สอนอธิบายส่วนประกอบหุ่นยนต์ ROBOCART ให้นักเรียน" loading="lazy"><span>เรียนรู้ส่วนประกอบหุ่นยนต์</span></button>
+      <button class="gph" type="button" data-zoom="assets/act-3.webp" data-alt="นักเรียนทดสอบหุ่นยนต์บนสนามเส้นทางที่พื้นห้องเรียน"><img src="assets/act-3.webp" alt="นักเรียนทดสอบหุ่นยนต์บนสนามเส้นทางที่พื้นห้องเรียน" loading="lazy"><span>ทดสอบหุ่นยนต์บนสนามเส้นทาง</span></button>
+      <button class="gph" type="button" data-zoom="assets/act-4.webp" data-alt="นักเรียนทำภารกิจตามใบงานร่วมกับหุ่นยนต์"><img src="assets/act-4.webp" alt="นักเรียนทำภารกิจตามใบงานร่วมกับหุ่นยนต์" loading="lazy"><span>ปฏิบัติภารกิจตามใบงาน</span></button>
+      <button class="gph" type="button" data-zoom="assets/act-5.webp" data-alt="อธิบายใบงานออกแบบเส้นทางบนจอโปรเจกเตอร์"><img src="assets/act-5.webp" alt="อธิบายใบงานออกแบบเส้นทางบนจอโปรเจกเตอร์" loading="lazy"><span>อธิบายใบงานออกแบบเส้นทาง</span></button>
+      <button class="gph" type="button" data-zoom="assets/act-6.webp" data-alt="นักเรียนนำเสนอผลงานหน้าชั้นเรียนพร้อมหุ่นยนต์"><img src="assets/act-6.webp" alt="นักเรียนนำเสนอผลงานหน้าชั้นเรียนพร้อมหุ่นยนต์" loading="lazy"><span>นำเสนอผลงานหน้าชั้นเรียน</span></button>
+      <button class="gph g-full" type="button" data-zoom="assets/act-7.webp" data-alt="ภาพหมู่นักเรียนชั้น ป.4/1 กับคณะผู้จัดทำหลังจบกิจกรรม"><img src="assets/act-7.webp" alt="ภาพหมู่นักเรียนชั้น ป.4/1 กับคณะผู้จัดทำหลังจบกิจกรรม" loading="lazy"><span>ภาพหมู่หลังจบกิจกรรม</span></button>
+    </div>
+  </section>
+
+  <section class="isec" id="appx-doc" data-sec="เอกสารภาคผนวก">
+    <h2 class="ih"><b>3</b>ภาคผนวก</h2>
+    <div class="appx-idx">
+      <button class="box ax" type="button" data-flip="flip-appx" data-page="2"><b>ก</b><span>รายชื่อผู้เชี่ยวชาญตรวจสอบเครื่องมือการวิจัย</span></button>
+      <button class="box ax" type="button" data-flip="flip-appx" data-page="4"><b>ข</b><span>เครื่องมือที่ใช้ในการวิจัย</span></button>
+      <button class="box ax" type="button" data-flip="flip-appx" data-page="20"><b>ค</b><span>ผลการวิเคราะห์</span></button>
+      <button class="box ax" type="button" data-flip="flip-appx" data-page="27"><b>ง</b><span>สื่อ นวัตกรรม และภาพถ่ายการจัดกิจกรรม</span></button>
+    </div>
+    <div class="flip" id="flip-appx" data-dir="assets/appx" data-n="33" tabindex="0" aria-label="เอกสารภาคผนวก 33 หน้า">
+      <div class="fl-bar">
+        <span class="pdf-t"><i>PDF</i>ภาคผนวก.pdf <small>· 33 หน้า</small></span>
+        <button class="pdf-btn" type="button" data-fs="flip-appx">⛶ เต็มจอ</button>
+      </div>
+      <div class="fl-stage">
+        <button class="fl-nav prev" type="button" aria-label="หน้าก่อนหน้า">‹</button>
+        <div class="fl-page"><img alt="" draggable="false"></div>
+        <button class="fl-nav next" type="button" aria-label="หน้าถัดไป">›</button>
+      </div>
+      <div class="fl-foot">
+        <button class="fl-step" type="button" data-step="-5" aria-label="ย้อน 5 หน้า">«</button>
+        <input class="fl-range" type="range" min="1" value="1" aria-label="เลือกหน้า">
+        <button class="fl-step" type="button" data-step="5" aria-label="ไปอีก 5 หน้า">»</button>
+        <span class="fl-num">หน้า <input class="fl-in" type="number" min="1" value="1" aria-label="เลขหน้า"> / <b class="fl-tot"></b></span>
+      </div>
+    </div>
+  </section>
+</template>
+
+<div id="chapters"></div>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <img class="bm" src="assets/logo-white.webp" alt="ROBOCART">
+    <p>เว็บไซต์นี้เป็นส่วนหนึ่งของรายวิชาโครงงานเทคโนโลยีดิจิทัลเพื่อการศึกษาและคอมพิวเตอร์ศึกษา<br>ภาควิชาเทคโนโลยีดิจิทัลเพื่อการศึกษาและคอมพิวเตอร์ศึกษา คณะศึกษาศาสตร์ มหาวิทยาลัยบูรพา</p>
+  </div>
+</footer>
+
+<div class="modal lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="ภาพขยาย">
+  <button class="x" type="button" id="lbClose" aria-label="ปิดภาพขยาย">✕</button>
+  <img id="lbImg" alt="">
+</div>
+
+<script>
+window.__initRobocartModel = function () {
+  // ==========================================
+  // ส่วน 3D Model และระบบ Physics (ห้ามแก้ไขตามคำสั่ง)
+  // ==========================================
+  const container = document.getElementById('webgl-container');
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xffffff);
+
+  const camera = new THREE.PerspectiveCamera(36, container.clientWidth / container.clientHeight, 0.1, 1000);
+  const DEFAULT_CAM = new THREE.Vector3(4.5, 3.2, 5.6);
+  // ระยะกล้อง: ค่ามาก = มองจากไกลขึ้น (จอแคบ/มือถือจะถอยไกลกว่า) · CAM_UP = ยกกล้องสูงขึ้นให้มองข้ามสิ่งกีดขวาง
+  const camK = () => (container.clientWidth / Math.max(1, container.clientHeight) < 1 ? 2.7 : 1.8);
+  const CAM_UP = 1.5;
+  const camPos = (x, y, z, ty) => { const k = camK(); const up = y > ty ? CAM_UP : 1; camera.position.set(x * k, ty + (y - ty) * k * up, z * k); };
+  camPos(DEFAULT_CAM.x, DEFAULT_CAM.y, DEFAULT_CAM.z, 0.2);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  container.appendChild(renderer.domElement);
+
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.06;
+  controls.minDistance = 2.8;
+  controls.maxDistance = 34;
+  controls.target.set(0, 0.2, 0);
+
+  const hemiLight = new THREE.HemisphereLight(0xffffff, 0xf1f5f9, 0.95);
+  hemiLight.position.set(0, 10, 0);
+  scene.add(hemiLight);
+
+  const mainDirLight = new THREE.DirectionalLight(0xffffff, 0.45);
+  mainDirLight.position.set(4, 10, 6);
+  mainDirLight.castShadow = true;
+  mainDirLight.shadow.mapSize.width = 1024;
+  mainDirLight.shadow.mapSize.height = 1024;
+  mainDirLight.shadow.radius = 4;
+  mainDirLight.shadow.bias = -0.0008;
+  scene.add(mainDirLight);
+
+  const bottomFillLight = new THREE.DirectionalLight(0xffffff, 0.4);
+  bottomFillLight.position.set(-3, -8, 4);
+  scene.add(bottomFillLight);
+
+  const shadowPlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(18, 18),
+    new THREE.ShadowMaterial({ opacity: 0.08 })
+  );
+  shadowPlane.rotation.x = -Math.PI / 2;
+  shadowPlane.position.y = -0.76;
+  shadowPlane.receiveShadow = true;
+  scene.add(shadowPlane);
+
+  function vectorSurfaceMat(hexColor, roughness = 0.35, metalness = 0.05, opacity = 1.0, map = null) {
+    return new THREE.MeshStandardMaterial({
+      color: hexColor, roughness: roughness, metalness: metalness, transparent: opacity < 1.0, opacity: opacity, map: map
+    });
+  }
+
+  function createChassisTexture() {
+    const cvs = document.createElement('canvas');
+    cvs.width = 1024; cvs.height = 1024;
+    const ctx = cvs.getContext('2d');
+    ctx.fillStyle = '#f4c318'; ctx.fillRect(0, 0, 1024, 1024);
+    ctx.fillStyle = '#232629';
+    ctx.fillRect(20, 120, 65, 780); ctx.fillRect(939, 120, 65, 780);
+    ctx.fillStyle = '#202225';
+    const drawSlot = (x, y, w, h, r = 18) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); };
+    drawSlot(140, 70, 280, 36, 16); drawSlot(604, 70, 280, 36, 16);
+    drawSlot(140, 918, 280, 36, 16); drawSlot(604, 918, 280, 36, 16);
+    for (let i = 0; i < 4; i++) {
+      drawSlot(180, 220 + i * 140, 260, 38, 16);
+      drawSlot(584, 220 + i * 140, 260, 38, 16);
+    }
+    const drawHole = (cx, cy, rad = 20) => { ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.fill(); };
+    drawHole(512, 160, 24); drawHole(512, 860, 24); drawHole(340, 860, 18); drawHole(684, 860, 18);
+    ctx.save();
+    ctx.translate(512, 900); ctx.rotate(Math.PI);
+    ctx.fillStyle = '#1e2022'; ctx.font = 'bold 40px Prompt, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('ROBO BASE', 0, 15); ctx.font = 'bold 34px Prompt, sans-serif'; ctx.fillText('MINI', 0, -25);
+    ctx.restore();
+    ctx.fillStyle = '#1e2022'; ctx.beginPath(); ctx.roundRect(740, 880, 180, 48, 24); ctx.fill();
+    ctx.fillStyle = '#f4c318'; ctx.font = 'italic bold 30px Prompt, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('Cytron', 830, 914);
+    const tex = new THREE.CanvasTexture(cvs);
+    tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 4;
+    return tex;
+  }
+
+  function createRekabitTexture() {
+    const cvs = document.createElement('canvas');
+    cvs.width = 1024; cvs.height = 1024;
+    const ctx = cvs.getContext('2d');
+    ctx.fillStyle = '#d43325'; ctx.fillRect(0, 0, 1024, 1024);
+    ctx.fillStyle = '#f8e6e4'; ctx.beginPath(); ctx.roundRect(45, 680, 440, 300, 20); ctx.fill();
+    ctx.fillStyle = '#d43325'; ctx.font = 'bold 28px Prompt, sans-serif';
+    ctx.fillText('OFF', 200, 955); ctx.fillText('ON', 415, 955); ctx.fillText('DC 3.6V-6V', 200, 735); ctx.fillText('POWER', 280, 735);
+    ctx.save(); ctx.translate(715, 810); ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 54px Prompt, sans-serif'; ctx.fillText('REKA:BIT', 0, 0); ctx.restore();
+    for (let i = 0; i < 12; i++) {
+      ctx.fillStyle = '#25282c'; ctx.fillRect(620, 140 + i * 48, 38, 24);
+      ctx.fillStyle = '#f59e0b'; ctx.fillRect(675, 140 + i * 48, 22, 22);
+    }
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 26px Prompt, sans-serif';
+    ctx.fillText('MOTOR 1', 260, 110); ctx.fillText('MOTOR 2', 450, 110);
+    const tex = new THREE.CanvasTexture(cvs);
+    tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 4;
+    return tex;
+  }
+
+  function createMicrobitTexture() {
+    const cvs = document.createElement('canvas');
+    cvs.width = 512; cvs.height = 1024;
+    const ctx = cvs.getContext('2d');
+    ctx.fillStyle = '#1e2229'; ctx.fillRect(0, 0, 512, 1024);
+    ctx.fillStyle = '#1ca0e3'; ctx.beginPath(); ctx.moveTo(0, 720); ctx.lineTo(190, 910); ctx.lineTo(0, 1024); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#e5a93c'; ctx.lineWidth = 14; ctx.beginPath(); ctx.roundRect(45, 440, 56, 130, 28); ctx.stroke();
+    ctx.fillStyle = '#e5a93c'; ctx.beginPath(); ctx.arc(73, 475, 9, 0, Math.PI * 2); ctx.arc(73, 535, 9, 0, Math.PI * 2); ctx.fill();
+    for (let i = 0; i < 20; i++) {
+      ctx.fillStyle = '#d99b26'; ctx.fillRect(455, 60 + i * 46, 57, 28);
+    }
+    for (let i = 0; i < 5; i++) {
+      ctx.beginPath(); ctx.arc(445, 130 + i * 190, 34, 0, Math.PI * 2); ctx.fillStyle = '#d99b26'; ctx.fill();
+      ctx.beginPath(); ctx.arc(445, 130 + i * 190, 18, 0, Math.PI * 2); ctx.fillStyle = '#1e2229'; ctx.fill();
+    }
+    for (let r = 0; r < 5; r++) {
+      for (let c = 0; c < 5; c++) {
+        const lx = 175 + r * 44; const ly = 365 + c * 68;
+        ctx.fillStyle = '#d9a13b'; ctx.fillRect(lx, ly, 24, 34);
+        ctx.fillStyle = '#f8fafc'; ctx.fillRect(lx + 5, ly + 8, 14, 18);
+      }
+    }
+    const tex = new THREE.CanvasTexture(cvs);
+    tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 4;
+    return tex;
+  }
+
+  function createMakerLineTexture() {
+    const cvs = document.createElement('canvas');
+    cvs.width = 1024; cvs.height = 380;
+    const ctx = cvs.getContext('2d');
+    ctx.fillStyle = '#5c2d73'; ctx.fillRect(0, 0, 1024, 380);
+    ctx.fillStyle = '#f1f5f9'; ctx.fillRect(90, 20, 844, 42);
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 42px Prompt, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('MAKER LINE', 580, 135);
+    const labels = ['S1', 'S2', 'S3', 'S4', 'S5'];
+    for (let i = 0; i < 5; i++) {
+      const bx = 160 + i * 155; const by = 185;
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 6; ctx.beginPath(); ctx.roundRect(bx, by, 96, 145, 12); ctx.stroke();
+      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 30px Prompt, sans-serif'; ctx.fillText(labels[i], bx + 48, by + 40);
+      ctx.fillStyle = '#f8fafc'; ctx.fillRect(bx + 26, by + 68, 44, 58);
+      ctx.fillStyle = '#94a3b8'; ctx.fillRect(bx + 34, by + 80, 28, 34);
+    }
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 5; ctx.strokeRect(55, 165, 65, 175); ctx.strokeRect(900, 165, 65, 175);
+    const tex = new THREE.CanvasTexture(cvs);
+    tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 4;
+    return tex;
+  }
+
+  function createUltrasonicTexture() {
+    const cvs = document.createElement('canvas');
+    cvs.width = 1024; cvs.height = 512;
+    const ctx = cvs.getContext('2d');
+    ctx.fillStyle = '#1b5583'; ctx.fillRect(0, 0, 1024, 512);
+    ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 12;
+    ctx.beginPath(); ctx.arc(250, 265, 185, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(774, 265, 185, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 42px Prompt, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('HC-SR04', 512, 465);
+    ctx.font = 'bold 24px Prompt, sans-serif'; ctx.fillText('Vcc   Trig   Echo   Gnd', 512, 390);
+    for (let i = 0; i < 4; i++) {
+      ctx.fillStyle = '#cbd5e1'; ctx.beginPath(); ctx.arc(440 + i * 48, 418, 12, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.font = 'bold 44px Prompt, sans-serif'; ctx.fillText('T', 60, 90); ctx.fillText('R', 964, 90);
+    const tex = new THREE.CanvasTexture(cvs);
+    tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 4;
+    return tex;
+  }
+
+  const robotGroup = new THREE.Group();
+  scene.add(robotGroup);
+
+  const chassisTex = createChassisTexture();
+  const chassisTopMat = vectorSurfaceMat(0xffffff, 0.4, 0.05, 1.0, chassisTex);
+  const chassisSideMat = vectorSurfaceMat(0xe0ad12, 0.45, 0.05);
+  const chassisMats = [chassisSideMat, chassisSideMat, chassisTopMat, chassisTopMat, chassisSideMat, chassisSideMat];
+
+  const botDeck = new THREE.Mesh(new THREE.BoxGeometry(2.55, 0.08, 3.05), chassisMats);
+  botDeck.position.set(0, -0.42, 0);
+  botDeck.castShadow = true; botDeck.receiveShadow = true;
+  robotGroup.add(botDeck);
+
+  const topDeck = new THREE.Mesh(new THREE.BoxGeometry(2.55, 0.08, 2.95), chassisMats);
+  topDeck.position.set(0, 0.24, 0);
+  topDeck.castShadow = true; topDeck.receiveShadow = true;
+  robotGroup.add(topDeck);
+
+  const brassMat = vectorSurfaceMat(0xc89933, 0.3, 0.3);
+  const screwMat = vectorSurfaceMat(0xdbe2ea, 0.25, 0.4);
+  const pillarCoords = [[-1.12, -0.09, 1.32], [1.12, -0.09, 1.32], [-1.12, -0.09, -1.28], [1.12, -0.09, -1.28]];
+  pillarCoords.forEach(([px, py, pz]) => {
+    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.58, 6), brassMat);
+    pillar.position.set(px, py, pz); robotGroup.add(pillar);
+    const topScrew = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.03, 16), screwMat);
+    topScrew.position.set(px, 0.295, pz); robotGroup.add(topScrew);
+    const botScrew = topScrew.clone(); botScrew.position.set(px, -0.475, pz); robotGroup.add(botScrew);
+  });
+
+  const battBox = new THREE.Mesh(new THREE.BoxGeometry(1.58, 0.44, 1.85), vectorSurfaceMat(0x212529, 0.6));
+  battBox.position.set(0, -0.14, 0.12); robotGroup.add(battBox);
+
+  const cellBlue = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 1.48, 16), vectorSurfaceMat(0x1d4ed8, 0.4));
+  cellBlue.rotation.z = Math.PI / 2; cellBlue.position.set(0, -0.12, 0.45); robotGroup.add(cellBlue);
+
+  const cellTip = new THREE.Mesh(new THREE.CylinderGeometry(0.162, 0.162, 0.38, 16), vectorSurfaceMat(0xd97706, 0.4));
+  cellTip.rotation.z = Math.PI / 2; cellTip.position.set(0.52, -0.12, 0.45); robotGroup.add(cellTip);
+
+  const yellowMotorMat = vectorSurfaceMat(0xfacc15, 0.4);
+  const whiteStrapMat = vectorSurfaceMat(0xe2e8f0, 0.4);
+  [-1, 1].forEach(dir => {
+    const mBody = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.44, 1.25), yellowMotorMat);
+    mBody.position.set(dir * 1.02, -0.02, -0.35); robotGroup.add(mBody);
+    const strap = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.48, 0.22), whiteStrapMat);
+    strap.position.set(dir * 1.02, -0.02, 0.08); robotGroup.add(strap);
+    const can = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.42, 16), vectorSurfaceMat(0x94a3b8, 0.35, 0.3));
+    can.rotation.x = Math.PI / 2; can.position.set(dir * 1.02, -0.02, 0.28); robotGroup.add(can);
+  });
+
+  function createVectorWheel(isRight) {
+    const wGroup = new THREE.Group();
+    const tireColor = vectorSurfaceMat(0x23272c, 0.7);
+    const treadDark = vectorSurfaceMat(0x16181b, 0.8);
+    const rimWhite = vectorSurfaceMat(0xf1f5f9, 0.3);
+    const rimShadow = vectorSurfaceMat(0xcbd5e1, 0.4);
+
+    const tireMain = new THREE.Mesh(new THREE.CylinderGeometry(0.76, 0.76, 0.36, 36), tireColor);
+    tireMain.rotation.z = Math.PI / 2; tireMain.castShadow = true; wGroup.add(tireMain);
+
+    const numTreads = 28;
+    for (let i = 0; i < numTreads; i++) {
+      const ang = (i / numTreads) * Math.PI * 2;
+      const tread = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.04, 0.09), treadDark);
+      tread.position.set(0.08, Math.sin(ang) * 0.755, Math.cos(ang) * 0.755);
+      tread.rotation.x = -ang; wGroup.add(tread);
+      const tread2 = tread.clone();
+      tread2.position.set(-0.08, Math.sin(ang + 0.11) * 0.755, Math.cos(ang + 0.11) * 0.755);
+      tread2.rotation.x = -(ang + 0.11); wGroup.add(tread2);
+    }
+    const rimOuter = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.58, 0.37, 32), rimWhite);
+    rimOuter.rotation.z = Math.PI / 2; wGroup.add(rimOuter);
+    const rimInner = new THREE.Mesh(new THREE.CylinderGeometry(0.49, 0.49, 0.375, 32), rimShadow);
+    rimInner.rotation.z = Math.PI / 2; wGroup.add(rimInner);
+    const rimCenter = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.38, 32), rimWhite);
+    rimCenter.rotation.z = Math.PI / 2; wGroup.add(rimCenter);
+
+    const holeMat = vectorSurfaceMat(0x334155, 0.7);
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.082, 0.082, 0.39, 16), holeMat);
+      hole.rotation.z = Math.PI / 2; hole.position.set(0, Math.sin(a) * 0.31, Math.cos(a) * 0.31); wGroup.add(hole);
+    }
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.4, 16), rimShadow);
+    hub.rotation.z = Math.PI / 2; wGroup.add(hub);
+
+    wGroup.position.set(isRight ? 1.56 : -1.56, -0.02, -0.35); robotGroup.add(wGroup);
+  }
+  createVectorWheel(false); createVectorWheel(true);
+
+  const casterGroup = new THREE.Group();
+  casterGroup.position.set(0, -0.52, 0.82); robotGroup.add(casterGroup);
+  const casterMount = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.12, 0.55), vectorSurfaceMat(0xe2e8f0, 0.35));
+  casterGroup.add(casterMount);
+  const casterHousing = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.22, 0.22, 20), vectorSurfaceMat(0xcbd5e1, 0.4));
+  casterHousing.position.y = -0.1; casterGroup.add(casterHousing);
+  const steelBall = new THREE.Mesh(new THREE.SphereGeometry(0.17, 24, 24), vectorSurfaceMat(0x94a3b8, 0.25, 0.4));
+  steelBall.position.y = -0.15; casterGroup.add(steelBall);
+
+  const rekaGroup = new THREE.Group();
+  rekaGroup.position.set(0, 0.44, 0.08); robotGroup.add(rekaGroup);
+  [[-0.96, -0.1, 1.05], [0.96, -0.1, 1.05], [-0.96, -0.1, -1.05], [0.96, -0.1, -1.05]].forEach(([x, y, z]) => {
+    const sp = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.16, 6), brassMat);
+    sp.position.set(x, y, z); rekaGroup.add(sp);
+  });
+  const rekaTex = createRekabitTexture();
+  const rekaTopMat = vectorSurfaceMat(0xffffff, 0.4, 0.05, 1.0, rekaTex);
+  const rekaEdgeMat = vectorSurfaceMat(0xb91c1c, 0.5);
+  const rekaBoard = new THREE.Mesh(new THREE.BoxGeometry(2.18, 0.06, 2.35), [rekaEdgeMat, rekaEdgeMat, rekaTopMat, rekaEdgeMat, rekaEdgeMat, rekaEdgeMat]);
+  rekaBoard.castShadow = true; rekaGroup.add(rekaBoard);
+
+  const portCreamMat = vectorSurfaceMat(0xf3efe6, 0.4);
+  const portSlotMat = vectorSurfaceMat(0x334155, 0.8);
+  for (let i = 0; i < 6; i++) {
+    const pz = -0.82 + i * 0.31;
+    const port = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.22, 0.24), portCreamMat);
+    port.position.set(0.86, 0.13, pz); rekaGroup.add(port);
+    const portHole = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.16), portSlotMat);
+    portHole.position.set(0.97, 0.14, pz); rekaGroup.add(portHole);
+  }
+  const dcSocket = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.28, 0.34), vectorSurfaceMat(0x26292e, 0.5));
+  dcSocket.position.set(-0.78, 0.16, 0.62); rekaGroup.add(dcSocket);
+  const slideSwitchBase = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.08, 0.18), vectorSurfaceMat(0.475569, 0.5));
+  slideSwitchBase.position.set(-0.14, 0.06, 0.86); rekaGroup.add(slideSwitchBase);
+  const slideKnob = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.14, 0.11), vectorSurfaceMat(0x1e293b, 0.6));
+  slideKnob.position.set(-0.2, 0.12, 0.86); rekaGroup.add(slideKnob);
+
+  const smdCapMat = vectorSurfaceMat(0xdbe2ea, 0.25, 0.5);
+  [0.58, 0.88].forEach(cz => {
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.2, 20), smdCapMat);
+    cap.position.set(0.12, 0.13, cz); rekaGroup.add(cap);
+    const ind = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.12, 0.18), vectorSurfaceMat(0x272a30, 0.6));
+    ind.position.set(0.36, 0.09, cz); rekaGroup.add(ind);
+  });
+  [-0.18, 0.22].forEach(tx => {
+    const tb = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.32, 0.28), vectorSurfaceMat(0x23272e, 0.6));
+    tb.position.set(tx, 0.18, -1.02); rekaGroup.add(tb);
+  });
+  const edgeSocket = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.34, 1.72), vectorSurfaceMat(0x26292e, 0.6));
+  edgeSocket.position.set(0.18, 0.2, -0.1); rekaGroup.add(edgeSocket);
+
+  const mbTex = createMicrobitTexture();
+  const mbTopMat = vectorSurfaceMat(0xffffff, 0.45, 0.05, 1.0, mbTex);
+  const mbDarkMat = vectorSurfaceMat(0x1e2229, 0.6);
+  const mbBoard = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.05, 1.62), [mbDarkMat, mbDarkMat, mbTopMat, mbDarkMat, mbDarkMat, mbDarkMat]);
+  mbBoard.position.set(-0.38, 0.22, -0.1); rekaGroup.add(mbBoard);
+
+  [-0.52, 0.32].forEach(bz => {
+    const btnBase = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.06, 0.18), vectorSurfaceMat(0x475569, 0.5));
+    btnBase.position.set(-0.22, 0.26, bz); rekaGroup.add(btnBase);
+    const btnCap = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.09, 16), vectorSurfaceMat(0x18181b, 0.7));
+    btnCap.position.set(-0.22, 0.28, bz); rekaGroup.add(btnCap);
+  });
+
+  const makerLineGroup = new THREE.Group();
+  makerLineGroup.position.set(0, -0.53, 1.42); robotGroup.add(makerLineGroup);
+  const mlTex = createMakerLineTexture();
+  const mlFaceMat = vectorSurfaceMat(0xffffff, 0.4, 0.05, 1.0, mlTex);
+  const mlPurpleMat = vectorSurfaceMat(0x5c2d73, 0.45);
+  const mlBoard = new THREE.Mesh(new THREE.BoxGeometry(2.12, 0.055, 0.68), [mlPurpleMat, mlPurpleMat, mlFaceMat, mlFaceMat, mlPurpleMat, mlPurpleMat]);
+  mlBoard.castShadow = true; makerLineGroup.add(mlBoard);
+  [-0.85, 0.85].forEach(mx => {
+    const mlNut = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.12, 12), screwMat);
+    mlNut.position.set(mx, 0.05, -0.18); makerLineGroup.add(mlNut);
+  });
+  for (let i = -2; i <= 2; i++) {
+    const ledChip = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.04, 0.11), vectorSurfaceMat(0xf8fafc, 0.3));
+    ledChip.position.set(i * 0.33, -0.04, 0.12); makerLineGroup.add(ledChip);
+  }
+
+  const frontSensorModule = new THREE.Group();
+  frontSensorModule.position.set(0, -0.08, 1.38); robotGroup.add(frontSensorModule);
+  const clearAcrylicMat = vectorSurfaceMat(0xe2e8f0, 0.2, 0.05, 0.72);
+  const servoMountPlate = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.05, 0.44), clearAcrylicMat);
+  servoMountPlate.position.set(0, 0.02, 0.12); frontSensorModule.add(servoMountPlate);
+
+  const servoBlueMat = vectorSurfaceMat(0x1d4ed8, 0.25, 0.1, 0.88);
+  const servoGearInsideMat = vectorSurfaceMat(0x60a5fa, 0.35, 0.1);
+  const servoBody = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.56, 0.28), servoBlueMat);
+  servoBody.position.set(0, -0.04, 0.12); servoBody.castShadow = true; frontSensorModule.add(servoBody);
+  const servoFlange = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.06, 0.28), servoBlueMat);
+  servoFlange.position.set(0, 0.06, 0.12); frontSensorModule.add(servoFlange);
+  const innerGear = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.12, 16), servoGearInsideMat);
+  innerGear.position.set(0, 0.12, 0.12); frontSensorModule.add(innerGear);
+  const servoBoss = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.14, 20), servoBlueMat);
+  servoBoss.position.set(0, 0.28, 0.12); frontSensorModule.add(servoBoss);
+
+  const servoPanGroup = new THREE.Group();
+  servoPanGroup.position.set(0, 0.36, 0.12); frontSensorModule.add(servoPanGroup);
+  const whiteHorn = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.06, 0.16), vectorSurfaceMat(0xf8fafc, 0.3));
+  servoPanGroup.add(whiteHorn);
+  const hornHub = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.08, 16), vectorSurfaceMat(0xf1f5f9, 0.3));
+  servoPanGroup.add(hornHub);
+  const acrylicBase = new THREE.Mesh(new THREE.BoxGeometry(1.42, 0.06, 0.42), clearAcrylicMat);
+  acrylicBase.position.set(0, 0.06, 0.02); servoPanGroup.add(acrylicBase);
+  const acrylicBackWall = new THREE.Mesh(new THREE.BoxGeometry(1.42, 0.72, 0.05), clearAcrylicMat);
+  acrylicBackWall.position.set(0, 0.42, -0.06); servoPanGroup.add(acrylicBackWall);
+
+  const sonarTex = createUltrasonicTexture();
+  const sonarFrontMat = vectorSurfaceMat(0xffffff, 0.4, 0.05, 1.0, sonarTex);
+  const sonarBlueMat = vectorSurfaceMat(0x1b5583, 0.45);
+  const sonarBoard = new THREE.Mesh(new THREE.BoxGeometry(1.38, 0.64, 0.05), [sonarBlueMat, sonarBlueMat, sonarBlueMat, sonarBlueMat, sonarFrontMat, sonarBlueMat]);
+  sonarBoard.position.set(0, 0.44, 0.0); sonarBoard.castShadow = true; servoPanGroup.add(sonarBoard);
+
+  const silverShellMat = vectorSurfaceMat(0xdbe2ea, 0.25, 0.45);
+  const darkMeshMat = vectorSurfaceMat(0x1e293b, 0.8);
+  const innerRingMat = vectorSurfaceMat(0x94a3b8, 0.4, 0.3);
+
+  [-0.36, 0.36].forEach(tx => {
+    const eyeGroup = new THREE.Group();
+    eyeGroup.position.set(tx, 0.43, 0.16);
+    const cylinder = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.32, 32), silverShellMat);
+    cylinder.rotation.x = Math.PI / 2; cylinder.castShadow = true; eyeGroup.add(cylinder);
+    const innerBezel = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.20, 0.33, 28), innerRingMat);
+    innerBezel.rotation.x = Math.PI / 2; eyeGroup.add(innerBezel);
+    const meshDisk = new THREE.Mesh(new THREE.CylinderGeometry(0.175, 0.175, 0.34, 24), darkMeshMat);
+    meshDisk.rotation.x = Math.PI / 2; eyeGroup.add(meshDisk);
+    servoPanGroup.add(eyeGroup);
+  });
+
+  const crystal = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.1, 0.06), silverShellMat);
+  crystal.position.set(0, 0.64, 0.04); servoPanGroup.add(crystal);
+  const pinBlock = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.18, 0.09), vectorSurfaceMat(0x1e293b, 0.6));
+  pinBlock.position.set(0, 0.82, -0.01); servoPanGroup.add(pinBlock);
+
+  const waveMat = new THREE.MeshBasicMaterial({ color: 0x00b4d8, transparent: true, depthWrite: false, side: THREE.DoubleSide });
+  const waves = [];
+  for (let wi = 0; wi < 4; wi++) {
+    const wr = new THREE.Mesh(new THREE.RingGeometry(0.25, 0.32, 32), waveMat.clone());
+    wr.position.set(0, 0.43, 0.3); servoPanGroup.add(wr); waves.push(wr);
+  }
+
+  const obsGroup = new THREE.Group(); scene.add(obsGroup); const obsList = [];
+  function addObstacle(geo, mat, x, y, z) {
+    const mesh = new THREE.Mesh(geo, mat); mesh.position.set(x, y, z);
+    mesh.castShadow = true; mesh.receiveShadow = true; obsGroup.add(mesh); obsList.push(mesh);
+  }
+  addObstacle(new THREE.BoxGeometry(1.6, 2.2, 1.2), vectorSurfaceMat(0xfb8500, 0.4), 0, 0.3, 4.8);
+  addObstacle(new THREE.CylinderGeometry(0.7, 0.7, 2.0, 24), vectorSurfaceMat(0x10b981, 0.4), -2.8, 0.2, 5.2);
+  addObstacle(new THREE.BoxGeometry(2.2, 2.5, 0.8), vectorSurfaceMat(0x8b5cf6, 0.4), 2.5, 0.45, 4.2);
+
+  const raycaster = new THREE.Raycaster();
+  const hitPointMarker = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+  hitPointMarker.visible = false; scene.add(hitPointMarker);
+
+  let currentServoDeg = 90; let lastMeasuredDistance = null; const maxSensorRange = 8.0;
+  const radarHistory = []; let time = 0;
+
+  function performSensing() {
+    const chkSonar = document.getElementById('chk-servosonar');
+    const chkObs = document.getElementById('chk-obstacles');
+    if (!chkSonar.checked) {
+      document.getElementById('rc-dist').textContent = 'ปิดเซนเซอร์';
+      hitPointMarker.visible = false; return;
+    }
+    scene.updateMatrixWorld(true);
+    const origin = new THREE.Vector3(0, 0.43, 0.32); servoPanGroup.localToWorld(origin);
+    const direction = new THREE.Vector3(0, 0, 1); direction.transformDirection(servoPanGroup.matrixWorld).normalize();
+    let distance = null;
+    if (chkObs.checked && obsGroup.visible) {
+      raycaster.set(origin, direction); raycaster.far = maxSensorRange;
+      const hits = raycaster.intersectObjects(obsList, false);
+      if (hits.length > 0) {
+        distance = hits[0].distance; hitPointMarker.position.copy(hits[0].point); hitPointMarker.visible = true;
+      } else { hitPointMarker.visible = false; }
+    } else { hitPointMarker.visible = false; }
+
+    lastMeasuredDistance = distance;
+    const distLabel = document.getElementById('rc-dist'); const angLabel = document.getElementById('rc-ang');
+    if (distance !== null) { distLabel.textContent = `${(distance * 10).toFixed(1)} cm`; }
+    else { distLabel.textContent = chkObs.checked ? 'เกินระยะ' : 'ปิดสิ่งกีดขวาง'; }
+
+    let sideText = 'กลาง';
+    if (currentServoDeg < 80) sideText = 'ซ้าย'; else if (currentServoDeg > 100) sideText = 'ขวา';
+    angLabel.textContent = `มุม: ${Math.round(currentServoDeg)}° (${sideText})`;
+
+    if (distance !== null) {
+      radarHistory.push({ angle: currentServoDeg, dist: distance, time: time });
+      if (radarHistory.length > 250) radarHistory.shift();
+    }
+  }
+
+  const radarCanvas = document.getElementById('rc-radar');
+  const rg = radarCanvas.getContext('2d');
+
+  function drawRadarUI() {
+    const W = radarCanvas.width, H = radarCanvas.height;
+    const cx = W / 2, cy = H - 10, R = H - 15;
+    rg.clearRect(0, 0, W, H);
+    rg.strokeStyle = 'rgba(120,230,160,0.22)'; rg.lineWidth = 1.5;
+    for (let i = 1; i <= 3; i++) {
+      rg.beginPath(); rg.arc(cx, cy, R * i / 3, Math.PI, 2 * Math.PI); rg.stroke();
+    }
+    for (let a = 0; a <= 180; a += 45) {
+      const rad = Math.PI - (a * Math.PI / 180);
+      rg.beginPath(); rg.moveTo(cx, cy); rg.lineTo(cx + Math.cos(rad) * R, cy - Math.sin(rad) * R); rg.stroke();
+    }
+    const sweepRad = Math.PI - (currentServoDeg * Math.PI / 180);
+    const bx = cx + Math.cos(sweepRad) * R, by = cy - Math.sin(sweepRad) * R;
+    const gr = rg.createLinearGradient(cx, cy, bx, by);
+    gr.addColorStop(0, 'rgba(120,255,170,0.1)'); gr.addColorStop(1, 'rgba(120,255,170,0.95)');
+    rg.strokeStyle = gr; rg.lineWidth = 3; rg.beginPath(); rg.moveTo(cx, cy); rg.lineTo(bx, by); rg.stroke();
+
+    for (let k = radarHistory.length - 1; k >= 0; k--) {
+      const p = radarHistory[k]; const age = time - p.time;
+      if (age > 3.5) { radarHistory.splice(0, k + 1); break; }
+      const pr = Math.PI - (p.angle * Math.PI / 180), rr2 = (p.dist / maxSensorRange) * R;
+      rg.fillStyle = `rgba(255,183,3,${(1 - age / 3.5).toFixed(2)})`;
+      rg.beginPath(); rg.arc(cx + Math.cos(pr) * rr2, cy - Math.sin(pr) * rr2, 4.5, 0, Math.PI * 2); rg.fill();
+    }
+    rg.fillStyle = '#ffb703'; rg.beginPath(); rg.arc(cx, cy, 6, 0, Math.PI * 2); rg.fill();
+    rg.fillStyle = 'rgba(185,245,200,0.85)'; rg.font = '12px Prompt, sans-serif';
+    rg.textAlign = 'left'; rg.fillText('0°', 8, H - 2);
+    rg.textAlign = 'right'; rg.fillText('180°', W - 8, H - 2);
+  }
+
+  // ==========================================
+  // UI & Logic
+  // ==========================================
+  const chkMakerLine = document.getElementById('chk-makerline'), chkServoSonar = document.getElementById('chk-servosonar');
+  const chkObstacles = document.getElementById('chk-obstacles'), chkWaves = document.getElementById('chk-waves');
+  const badgeMakerLine = document.getElementById('badge-makerline'), badgeServoSonar = document.getElementById('badge-servosonar');
+  const servoControlPanel = document.getElementById('servo-control-panel'), rcRadarBox = document.getElementById('rc-radar-box');
+
+  function syncHardwareState() {
+    const hasML = chkMakerLine.checked, hasSS = chkServoSonar.checked;
+    makerLineGroup.visible = hasML; badgeMakerLine.style.display = hasML ? 'inline-block' : 'none';
+    frontSensorModule.visible = hasSS; badgeServoSonar.style.display = hasSS ? 'inline-block' : 'none';
+    servoControlPanel.style.opacity = hasSS ? '1' : '0.4'; servoControlPanel.style.pointerEvents = hasSS ? 'auto' : 'none';
+    rcRadarBox.style.opacity = hasSS ? '1' : '0.4'; obsGroup.visible = chkObstacles.checked;
+  }
+
+  const presetBtns = document.querySelectorAll('.preset-level-btn');
+  function highlightPreset(btnId) {
+    presetBtns.forEach(b => b.classList.remove('preset-active'));
+    if (btnId) document.getElementById(btnId).classList.add('preset-active');
+  }
+
+  document.getElementById('preset-base').addEventListener('click', () => {
+    highlightPreset('preset-base'); chkMakerLine.checked = false; chkServoSonar.checked = false; syncHardwareState(); moveCameraTo(4.5, 3.2, 5.6, 0.2, 'cam-iso');
+  });
+  document.getElementById('preset-makerline').addEventListener('click', () => {
+    highlightPreset('preset-makerline'); chkMakerLine.checked = true; chkServoSonar.checked = false; syncHardwareState(); moveCameraTo(3.8, 2.2, 5.8, 0.1, 'cam-iso');
+  });
+  document.getElementById('preset-ultrasonic').addEventListener('click', () => {
+    highlightPreset('preset-ultrasonic'); chkMakerLine.checked = false; chkServoSonar.checked = true; syncHardwareState(); moveCameraTo(4.0, 2.6, 5.8, 0.2, 'cam-iso');
+  });
+  document.getElementById('preset-full').addEventListener('click', () => {
+    highlightPreset('preset-full'); chkMakerLine.checked = true; chkServoSonar.checked = true; syncHardwareState(); moveCameraTo(4.5, 3.2, 5.6, 0.2, 'cam-iso');
+  });
+
+  chkMakerLine.addEventListener('change', () => { highlightPreset(null); syncHardwareState(); });
+  chkServoSonar.addEventListener('change', () => { highlightPreset(null); syncHardwareState(); });
+  chkObstacles.addEventListener('change', () => { obsGroup.visible = chkObstacles.checked; if (!chkObstacles.checked) radarHistory.length = 0; });
+
+  const sliderServo = document.getElementById('slider-servo'), servoAngleLabel = document.getElementById('servo-angle-label'), btnSweepToggle = document.getElementById('btn-sweep-toggle');
+  const actionBtns = [document.getElementById('btn-servo-0'), document.getElementById('btn-servo-90'), document.getElementById('btn-servo-180')];
+  let isServoSweeping = false, sweepDir = 1;
+
+  function setServoAngle(deg) {
+    currentServoDeg = Math.max(0, Math.min(180, deg));
+    servoPanGroup.rotation.y = THREE.MathUtils.degToRad(currentServoDeg - 90);
+    sliderServo.value = Math.round(currentServoDeg);
+    let labelStr = `${Math.round(currentServoDeg)}° (กลาง)`;
+    if (currentServoDeg < 80) labelStr = `${Math.round(currentServoDeg)}° (ซ้าย)`;
+    else if (currentServoDeg > 100) labelStr = `${Math.round(currentServoDeg)}° (ขวา)`;
+    servoAngleLabel.textContent = `มุม: ${labelStr}`;
+    actionBtns.forEach(b => b.classList.remove('active'));
+    if (Math.round(currentServoDeg) === 0) actionBtns[0].classList.add('active');
+    if (Math.round(currentServoDeg) === 90) actionBtns[1].classList.add('active');
+    if (Math.round(currentServoDeg) === 180) actionBtns[2].classList.add('active');
+  }
+
+  sliderServo.addEventListener('input', (e) => { if (isServoSweeping) toggleServoSweep(false); setServoAngle(parseFloat(e.target.value)); });
+  document.getElementById('btn-servo-0').addEventListener('click', () => { toggleServoSweep(false); setServoAngle(0); });
+  document.getElementById('btn-servo-90').addEventListener('click', () => { toggleServoSweep(false); setServoAngle(90); });
+  document.getElementById('btn-servo-180').addEventListener('click', () => { toggleServoSweep(false); setServoAngle(180); });
+
+  function toggleServoSweep(state) {
+    isServoSweeping = state;
+    btnSweepToggle.textContent = isServoSweeping ? 'หยุดสแกน' : 'สแกนอัตโนมัติ';
+    btnSweepToggle.classList.toggle('btn-primary', isServoSweeping);
+    btnSweepToggle.classList.toggle('btn-outline-primary', !isServoSweeping);
+  }
+  btnSweepToggle.addEventListener('click', () => toggleServoSweep(!isServoSweeping));
+
+  const camBtns = document.querySelectorAll('.btn-cam-angle');
+  function setActiveCamBtn(btnId) { camBtns.forEach(b => b.classList.remove('active')); if (btnId) document.getElementById(btnId).classList.add('active'); }
+  function moveCameraTo(x, y, z, targetY = 0.2, activeBtnId = null) { camPos(x, y, z, targetY); controls.target.set(0, targetY, 0); controls.update(); setActiveCamBtn(activeBtnId); }
+
+  document.getElementById('cam-iso').addEventListener('click', () => moveCameraTo(4.5, 3.2, 5.6, 0.2, 'cam-iso'));
+  document.getElementById('cam-front').addEventListener('click', () => moveCameraTo(0, 1.6, 7.0, 0.2, 'cam-front'));
+  document.getElementById('cam-bottom').addEventListener('click', () => moveCameraTo(0, -5.2, 4.2, -0.35, 'cam-bottom'));
+  document.getElementById('cam-side').addEventListener('click', () => moveCameraTo(7.2, 0.4, 0, 0.1, 'cam-side'));
+  document.getElementById('cam-top').addEventListener('click', () => moveCameraTo(0, 7.8, 0.05, 0, 'cam-top'));
+  document.getElementById('btn-reset-view').addEventListener('click', () => moveCameraTo(DEFAULT_CAM.x, DEFAULT_CAM.y, DEFAULT_CAM.z, 0.2, 'cam-iso'));
+
+  window.addEventListener('resize', () => {
+    if (!container) return;
+    camera.aspect = container.clientWidth / container.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(container.clientWidth, container.clientHeight);
+  });
+
+  const clock = new THREE.Clock();
+  function animate() {
+    requestAnimationFrame(animate);
+    if (!window.__rcActive) { clock.getDelta(); return; }
+    const delta = clock.getDelta(); time += delta;
+    if (isServoSweeping && chkServoSonar.checked) {
+      let nextDeg = currentServoDeg + sweepDir * delta * 95;
+      if (nextDeg >= 180) { nextDeg = 180; sweepDir = -1; }
+      else if (nextDeg <= 0) { nextDeg = 0; sweepDir = 1; }
+      setServoAngle(nextDeg);
+    }
+    performSensing();
+    const visWaves = chkWaves.checked && chkServoSonar.checked;
+    const waveMaxDist = (lastMeasuredDistance !== null) ? Math.min(lastMeasuredDistance, maxSensorRange) : maxSensorRange;
+    waves.forEach((w, i) => {
+      w.visible = visWaves; if (!visWaves) return;
+      const t = ((time * 1.6) + i / 4) % 1; w.position.z = 0.3 + t * waveMaxDist;
+      const s = 1.0 + t * waveMaxDist * 0.35; w.scale.set(s, s, 1);
+      w.material.opacity = (1 - t) * 0.75;
+    });
+    drawRadarUI(); controls.update(); renderer.render(scene, camera);
+  }
+
+  setServoAngle(90); syncHardwareState(); animate();
+  window.__rc = { controls: controls, renderer: renderer, camera: camera, container: container };
+
+};
+
+</script>
+<script>
+(function(){
+  /* ============ ลิงก์ที่ต้องใส่เอง ============ */
+  var YOUTUBE_URL = "";   // ลิงก์ YouTube ของคลิปแนะนำโครงงาน
+  /* เนื้อหาแต่ละบท (แต่ละหัวข้อในเมนูด้านบน)
+     - points : รายการหัวข้อย่อย
+     - url    : ลิงก์เอกสาร (เช่น PDF / Google Drive แบบ /preview) ถ้าใส่ จะมีปุ่มเปิดเอกสาร และฝังเอกสารไว้ในหน้า */
+  var REPORT = {
+    intro:{n:"1",tag:"CHAPTER 1 · INTRO",title:"บทนำ",short:"ที่มาและภาพรวมของโครงงาน",banner:"assets/intro-banner.webp",g:"linear-gradient(135deg,#3b2a9e,#a42f6d 70%,#ff6b53)",
+      lead:"โครงงานนี้พัฒนารูปแบบการจัดการเรียนรู้โดยใช้หุ่นยนต์ช่วยสอน ROBOCART เพื่อส่งเสริมทักษะการเขียนโปรแกรมและการคิดเชิงคำนวณสำหรับนักเรียนชั้นประถมศึกษาปีที่ 4 - 6",
+      points:["กลุ่มเป้าหมาย: นักเรียนชั้นประถมศึกษาปีที่ 4 - 6","สื่อหลัก: หุ่นยนต์ ROBOCART และเว็บไซต์ ROBOCART LEARNING CENTER"],
+      note:"ความเป็นมา วัตถุประสงค์ และขอบเขตฉบับเต็มอยู่ในเล่มโครงงาน",url:""},
+    method:{n:"2",tag:"CHAPTER 2 · METHOD",title:"วิธีการดำเนินการ",short:"ประชากร เครื่องมือ และการเก็บข้อมูล",banner:"assets/method-banner.webp",theme:"room",g:"linear-gradient(135deg,#ff9f1c,#ff6b53 60%,#b8401e)",
+      lead:"การจัดการเรียนรู้ดำเนินผ่านสถานการณ์จำลองและการลงมือปฏิบัติจริง ใน 5 ขั้นตอน",
+      points:["กำหนดสถานการณ์ปัญหา","นำเสนอความรู้","มอบหมายภารกิจ","สรุปและเชื่อมโยงผลกิจกรรม","นำเสนออย่างสร้างสรรค์"],
+      note:"รายละเอียดการออกแบบเครื่องมือและกลุ่มตัวอย่างอยู่ในเล่มโครงงาน",url:""},
+    result:{n:"3",tag:"CHAPTER 3 · RESULT",title:"ผลการพัฒนา",short:"ผลความต้องการ ผลงาน และผลการประเมิน",banner:"assets/result-banner.webp",theme:"class",g:"linear-gradient(135deg,#0f9d8a,#10b981 55%,#38bdf8)",
+      lead:"ชิ้นงานที่ได้จากการพัฒนาในโครงงานนี้",
+      points:["หุ่นยนต์ ROBOCART แบบถอดประกอบเซนเซอร์ได้ 3 ระดับ (Level 1 - 3)","โครงสร้างจำลอง 3 มิติของหุ่นยนต์ พร้อมเรดาร์จำลอง","เว็บไซต์ ROBOCART LEARNING CENTER พร้อมบล็อกโค้ด ระบบตรวจโค้ดอัตโนมัติ และโหมดคุณครู"],
+      note:"ผลการทดลองและค่าสถิติจะแสดงที่นี่เมื่อใส่ข้อมูลจริงของโครงงาน",url:""},
+    conclusion:{n:"4",tag:"CHAPTER 4 · DISCUSSION",title:"สรุปและอภิปรายผล",short:"สรุปผล อภิปรายผล และข้อเสนอแนะ",banner:"assets/conclusion-banner.webp",theme:"mars",g:"linear-gradient(135deg,#7c3aed,#c026d3 60%,#ff6b53)",
+      lead:"สรุปผลการดำเนินงานและอภิปรายผลของโครงงาน",
+      points:[],note:"เนื้อหากำลังจัดทำ ใส่ข้อความหรือลิงก์เอกสารได้ที่ตัวแปร REPORT ในสคริปต์",url:""},
+    book:{n:"5",tag:"DOCUMENT · BOOK",title:"เล่มโครงงาน",short:"เล่มประกอบโครงงานฉบับสมบูรณ์",banner:"assets/book-banner.webp",theme:"space",g:"linear-gradient(135deg,#1f1f2b,#3a2f4d 60%,#a42f6d)",
+      lead:"เอกสารรายงานโครงงานฉบับสมบูรณ์",
+      points:[],note:"เล่มโครงงานกำลังจัดทำ ใส่ลิงก์ไฟล์ได้ที่ตัวแปร REPORT ในสคริปต์",url:""},
+    appendix:{n:"6",tag:"APPENDIX",title:"ภาคผนวก",short:"ส่วนประกอบหุ่นยนต์ ภาพกิจกรรม และเอกสารภาคผนวก",banner:"assets/appendix-banner.webp",theme:"meteor",g:"linear-gradient(135deg,#0369a1,#3b82f6 60%,#38bdf8)",
+      lead:"เอกสารและหลักฐานประกอบโครงงาน",
+      points:[],note:"เนื้อหากำลังจัดทำ ใส่ข้อความหรือลิงก์เอกสารได้ที่ตัวแปร REPORT ในสคริปต์",url:""}
+  };
+  var BLURBS={intro:"อ่านบทนำ",method:"ดูวิธีดำเนินการ",result:"ดูผลการพัฒนา",conclusion:"อ่านสรุปและอภิปรายผล",book:"เปิดเล่มโครงงาน",appendix:"ดูภาคผนวก"};
+  var ORDER=Object.keys(REPORT);
+
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var $ = function(s,r){return (r||document).querySelector(s)}, $$ = function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+  function el(tag,cls,text){ var e=document.createElement(tag); if(cls) e.className=cls; if(text!=null) e.textContent=text; return e; }
+
+  /* ---------- sound (off by default) ---------- */
+  var ac=null, soundOn=false;
+  try{ soundOn = localStorage.getItem("rc-sound")==="1"; }catch(e){}
+  var snd=$("#snd");
+  function syncSnd(){ snd.setAttribute("aria-pressed", soundOn?"true":"false"); snd.setAttribute("aria-label", soundOn?"ปิดเสียงเอฟเฟกต์":"เปิดเสียงเอฟเฟกต์"); }
+  function blip(f,d){
+    if(!soundOn) return;
+    try{
+      ac = ac || new (window.AudioContext||window.webkitAudioContext)();
+      if(ac.state==="suspended") ac.resume();
+      var o=ac.createOscillator(), g=ac.createGain(), t=ac.currentTime; d=d||.09;
+      o.connect(g); g.connect(ac.destination);
+      o.frequency.setValueAtTime(f||600,t); o.frequency.exponentialRampToValueAtTime((f||600)*1.5,t+d);
+      g.gain.setValueAtTime(.06,t); g.gain.exponentialRampToValueAtTime(.001,t+d);
+      o.start(t); o.stop(t+d);
+    }catch(e){}
+  }
+  snd.addEventListener("click",function(){
+    soundOn=!soundOn; try{localStorage.setItem("rc-sound",soundOn?"1":"0");}catch(e){}
+    syncSnd(); blip(800,.1);
+  }); syncSnd();
+
+  /* ---------- report cards on home ---------- */
+  var cards=$("#cards");
+  ORDER.forEach(function(k){
+    var r=REPORT[k], li=el("li"), b=el("button","card");
+    b.type="button"; b.dataset.go=k;
+    var th=el("span","thumb"); th.dataset.n=r.n; th.style.setProperty("--g",r.g);
+    th.appendChild(el("small",null,r.tag)); th.appendChild(el("strong",null,r.title));
+    if(r.banner){ th.classList.add("pic"); th.style.setProperty("--img","url("+r.banner+")");
+      var sc=el("span","th-scene"); sc.setAttribute("aria-hidden","true"); th.insertBefore(sc,th.firstChild);
+      for(var q=0;q<5;q++){ var tw=el("i","th-tw"); tw.style.left=(8+q*19)+"%"; tw.style.top=(10+((q*37)%45))+"%"; tw.style.animationDelay=(-q*.6)+"s"; tw.setAttribute("aria-hidden","true"); th.appendChild(tw); } }
+    var op=el("span","open"); op.appendChild(el("span",null,BLURBS[k])); var ar=el("span",null,"→"); ar.setAttribute("aria-hidden","true"); op.appendChild(ar);
+    b.appendChild(th); b.appendChild(el("h3",null,r.title)); b.appendChild(el("p",null,r.short)); b.appendChild(op);
+    th.style.setProperty("--i",ORDER.indexOf(k)); li.appendChild(b); cards.appendChild(li);
+  });
+
+  /* ---------- chapter pages ---------- */
+  var chapRoot=$("#chapters");
+  function pagerBtn(cls,label,key,title){
+    var b=el("button",cls); b.type="button"; b.dataset.go=key;
+    b.appendChild(el("small",null,label)); b.appendChild(el("b",null,title)); return b;
+  }
+  ORDER.forEach(function(k,i){
+    var r=REPORT[k];
+    var s=el("section","screen chap"); s.dataset.screen=k; s.hidden=true; s.setAttribute("aria-label",r.title);
+    if(r.banner){
+      s.classList.add("themed","th-"+(r.theme||"sky")); var bn=el("header","chap-banner"), bi=el("img"); bi.src=r.banner; bi.alt=r.title+" · ROBOCART"; bn.appendChild(bi); s.appendChild(bn);
+    } else {
+      var hero=el("header","chap-hero"); hero.style.setProperty("--g",r.g);
+      var hw=el("div","wrap"); hw.appendChild(el("span","tag",r.tag)); hw.appendChild(el("h1",null,r.title)); hw.appendChild(el("p",null,r.short));
+      hero.appendChild(hw); var num=el("span","num",r.n); num.setAttribute("aria-hidden","true"); hero.appendChild(num);
+      s.appendChild(hero);
+    }
+
+    var body=el("div","chap-body"), grid=el("div","wrap chap-grid"), main=el("article","chap-main");
+    if(r.banner && (r.theme||"sky")==="sky"){ var cl=el("div","clouds"); cl.setAttribute("aria-hidden","true");
+      for(var c=0;c<14;c++){ var cd=el("span","cloud"+(c%3===1?" mirror":"")), w=150+((c*73)%5)*45;
+        cd.style.width=w+"px"; cd.style.top=(c*7+2)+"%"; cd.style.left=(c%2? 62+((c*37)%30) : -6+((c*29)%22))+"%";
+        cd.style.opacity=(.55+((c*17)%40)/100).toFixed(2); cd.style.setProperty("--d",(45+(c*11)%40)+"s"); cl.appendChild(cd); }
+      body.appendChild(cl); }
+    if(r.theme==="room"){ var bm=el("div","beams"); bm.setAttribute("aria-hidden","true"); bm.innerHTML="<i></i><i></i><i></i>"; body.appendChild(bm);
+      var mt=el("div","motes"); mt.setAttribute("aria-hidden","true");
+      for(var m=0;m<40;m++){ var mo=el("span","mote"); mo.style.left=((m*37)%100)+"%"; mo.style.top=((m*53)%100)+"%"; mo.style.setProperty("--s",(3+(m%4)*2)+"px"); mo.style.setProperty("--d",(10+(m*7)%14)+"s"); mo.style.animationDelay=(-(m%9))+"s"; mt.appendChild(mo); }
+      body.appendChild(mt); }
+    if(r.theme==="class"){ var bm2=el("div","beams"); bm2.setAttribute("aria-hidden","true"); bm2.innerHTML="<i></i><i></i>"; body.appendChild(bm2);
+      var ck=el("div","chalk"), sy=["+","×","÷","{ }","</>","▶","?","=","π","⚙","✓","1 0","★","△"]; ck.setAttribute("aria-hidden","true");
+      for(var q=0;q<22;q++){ var sp=el("span",null,sy[q%sy.length]); sp.style.left=((q*41+7)%96)+"%"; sp.style.top=((q*29+5)%97)+"%"; sp.style.fontSize=(22+(q%4)*12)+"px"; sp.style.setProperty("--d",(12+(q*5)%12)+"s"); sp.style.animationDelay=(-(q%7))+"s"; ck.appendChild(sp); }
+      body.appendChild(ck); }
+    if((r.theme||"sky")==="sky"){ var spk=el("div","sparks"); spk.setAttribute("aria-hidden","true");
+      for(var q2=0;q2<26;q2++){ var sk=el("i"); sk.style.left=((q2*37+11)%97)+"%"; sk.style.top=((q2*23+4)%96)+"%"; sk.style.setProperty("--s",(5+(q2%4)*3)+"px"); sk.style.setProperty("--d",(2+(q2%5)*.8)+"s"); sk.style.animationDelay=(-(q2%6)*.5)+"s"; spk.appendChild(sk); }
+      body.appendChild(spk); }
+    if(r.theme==="meteor"){ var mt2=el("div","meteors"); mt2.setAttribute("aria-hidden","true");
+      for(var w=0;w<70;w++){ var wi=el("i"); wi.style.left=((w*41)%100)+"%"; wi.style.top=((w*29)%100)+"%"; wi.style.setProperty("--d",(2+(w%5))+"s"); wi.style.animationDelay=(-(w%7)*.6)+"s"; if(w%3===0){ wi.style.width=wi.style.height="2px"; } mt2.appendChild(wi); }
+      for(var w2=0;w2<7;w2++){ var we=el("em"); we.style.left=(25+((w2*17)%75))+"%"; we.style.top=((w2*13)%60)+"%"; we.style.setProperty("--d",(6+(w2%4)*2.5)+"s"); we.style.animationDelay=(-(w2*1.9))+"s"; mt2.appendChild(we); }
+      for(var w3=0;w3<10;w3++){ var wb=el("b"); wb.style.left=((w3*53+7)%95)+"%"; wb.style.top=(10+((w3*31)%85))+"%"; wb.style.setProperty("--s",(10+(w3%4)*9)+"px"); wb.style.setProperty("--d",(9+(w3%5)*3)+"s"); mt2.appendChild(wb); }
+      body.appendChild(mt2); }
+    if(r.theme==="space"){ var nn=el("div","neon"); nn.setAttribute("aria-hidden","true");
+      for(var v=0;v<10;v++){ var ni=el("i"); ni.style.left=((v*23+6)%98)+"%"; ni.style.setProperty("--h",(120+(v%4)*60)+"px"); ni.style.setProperty("--d",(5+(v%5)*1.6)+"s"); ni.style.animationDelay=(-(v*0.9))+"s"; nn.appendChild(ni); }
+      body.appendChild(nn); }
+    if(r.theme==="mars"){ var st=el("div","stars"); st.setAttribute("aria-hidden","true");
+      for(var z=0;z<60;z++){ var si=el("i"); si.style.left=((z*47)%100)+"%"; si.style.top=((z*31)%55)+"%"; si.style.setProperty("--s",(1.5+(z%3))+"px"); si.style.setProperty("--d",(2+(z%5))+"s"); si.style.animationDelay=(-(z%4)*.7)+"s"; st.appendChild(si); }
+      for(var z2=0;z2<12;z2++){ var rb=el("b"); rb.style.left=((z2*61+9)%96)+"%"; rb.style.top=(45+((z2*13)%52))+"%"; rb.style.setProperty("--s",(10+(z2%4)*8)+"px"); rb.style.setProperty("--d",(10+(z2%5)*3)+"s"); st.appendChild(rb); }
+      body.appendChild(st); }
+    var tpl=document.getElementById("tpl-"+k);
+    if(tpl){ main.classList.add("rich"); main.appendChild(tpl.content.cloneNode(true)); }
+    else main.appendChild(el("p","lead",r.lead));
+    if(!tpl && r.points.length){ var ul=el("ul"); r.points.forEach(function(t,j){ var li=el("li"); li.appendChild(el("b",null,String(j+1))); li.appendChild(el("span",null,t)); ul.appendChild(li); }); main.appendChild(ul); }
+    if(!tpl && r.note) main.appendChild(el("p","note",r.note));
+    if(r.url){
+      var row=el("div","acts-row"), a=el("a","btn dark","เปิดเอกสาร ↗"); a.href=r.url; a.target="_blank"; a.rel="noopener"; row.appendChild(a); main.appendChild(row);
+      var fr=el("iframe","doc"); fr.dataset.src=r.url; fr.title=r.title; fr.loading="lazy"; main.appendChild(fr);
+    }
+    var toc=el("aside","toc"); toc.setAttribute("aria-label","สารบัญรายงาน");
+    toc.appendChild(el("span","tag-l","สารบัญรายงาน")); var ol=el("ol");
+    ORDER.forEach(function(k2){ var li=el("li"), b=el("button"); b.type="button"; b.dataset.go=k2;
+      b.appendChild(el("i",null,REPORT[k2].n)); b.appendChild(el("span",null,REPORT[k2].title));
+      li.appendChild(b);
+      if(k2===k){ b.setAttribute("aria-current","true");
+        var secs=$$("[data-sec]",main);
+        if(secs.length){ var sub=el("ol","subs"); secs.forEach(function(sec){ var sl=el("li"), sb=el("button",null,sec.dataset.sec); sb.type="button"; sb.dataset.jump=sec.id; sl.appendChild(sb); sub.appendChild(sl); }); li.appendChild(sub); } }
+      ol.appendChild(li); });
+    toc.appendChild(ol);
+    grid.appendChild(main); grid.appendChild(toc); body.appendChild(grid);
+
+    var pg=el("div","wrap"), pager=el("nav","pager"); pager.setAttribute("aria-label","เปลี่ยนบท");
+    var prev=i===0?["home","หน้าแรก"]:[ORDER[i-1],REPORT[ORDER[i-1]].title];
+    var next=i===ORDER.length-1?["home","กลับหน้าแรก"]:[ORDER[i+1],REPORT[ORDER[i+1]].title];
+    pager.appendChild(pagerBtn("pv","← ก่อนหน้า",prev[0],prev[1]));
+    pager.appendChild(pagerBtn("nx","ถัดไป →",next[0],next[1]));
+    pg.appendChild(pager); body.appendChild(pg);
+    s.appendChild(body); chapRoot.appendChild(s);
+  });
+
+  /* ---------- screens ---------- */
+  var screens=$$("[data-screen]"), tabs=$$("#pill button"), pill=$("#pill"), current="home";
+  function go(name,silent,scrollId){
+    if(!screens.some(function(s){return s.dataset.screen===name})) name="home";
+    current=name;
+    screens.forEach(function(s){ s.hidden = s.dataset.screen!==name; });
+    tabs.forEach(function(b){ if(b.dataset.go===name){ b.setAttribute("aria-current","page"); if(pill.scrollWidth>pill.clientWidth) pill.scrollLeft=b.offsetLeft-(pill.clientWidth-b.offsetWidth)/2; } else b.removeAttribute("aria-current"); });
+    if(!silent) blip(500+(ORDER.indexOf(name)+1)*70,.08);
+    var scr=$("[data-screen='"+name+"']");
+    $$("iframe.doc",scr).forEach(function(f){ if(!f.src) f.src=f.dataset.src; });
+    if(scrollId){ var t=document.getElementById(scrollId); if(t) t.scrollIntoView({behavior:reduce?"auto":"smooth",block:"start"}); }
+    else window.scrollTo(0,0);
+    try{ history.replaceState(null,"","#"+name); }catch(e){}
+    if(name==="home") size();
+    onScroll(); watchModel();
+  }
+  document.addEventListener("click",function(e){
+    var t=e.target.closest("[data-go]"); if(t){ e.preventDefault(); go(t.dataset.go); return; }
+    var fs=e.target.closest("[data-fs]"); if(fs){ var fe=document.getElementById(fs.dataset.fs); if(document.fullscreenElement) document.exitFullscreen(); else if(fe&&fe.requestFullscreen) fe.requestFullscreen(); else if(fe&&fe.webkitRequestFullscreen) fe.webkitRequestFullscreen(); return; }
+    var tb=e.target.closest("[data-tab]"); if(tb){ var bar=tb.parentNode; $$("[data-tab]",bar).forEach(function(x){ var on=x===tb; x.setAttribute("aria-selected",on?"true":"false"); var pnl=document.getElementById(x.dataset.tab); if(pnl) pnl.hidden=!on; }); blip(680,.06); return; }
+    var j=e.target.closest("[data-jump]"); if(j){ var jt=document.getElementById(j.dataset.jump); if(jt) jt.scrollIntoView({behavior:reduce?"auto":"smooth",block:"start"}); return; }
+    var s=e.target.closest("[data-scroll]"); if(s){ e.preventDefault(); blip(620,.07);
+      if(current!=="home") go("home",true,s.dataset.scroll);
+      else { var tg=document.getElementById(s.dataset.scroll); if(tg) tg.scrollIntoView({behavior:reduce?"auto":"smooth",block:"start"}); } }
+  });
+
+  /* ---------- progress bar + custom ring ---------- */
+  var bar=$("#bar");
+  function onScroll(){ var h=document.documentElement.scrollHeight-window.innerHeight; bar.style.width=(h>0?window.scrollY/h*100:0)+"%"; }
+  window.addEventListener("scroll",onScroll,{passive:true});
+  var ring=$("#ring");
+  if(window.matchMedia("(pointer:fine)").matches && !reduce){
+    var rx=0,ry=0,tx=0,ty=0,run=false;
+    window.addEventListener("mousemove",function(e){
+      tx=e.clientX; ty=e.clientY; ring.classList.add("show");
+      var it=e.target.closest&&e.target.closest("a,button,[data-go],[data-scroll],label,input");
+      ring.classList.toggle("big",!!it);
+      if(!run){ run=true; requestAnimationFrame(tick); }
+    });
+    document.addEventListener("mouseleave",function(){ ring.classList.remove("show"); });
+    function tick(){ rx+=(tx-rx)*.22; ry+=(ty-ry)*.22; ring.style.transform="translate("+rx+"px,"+ry+"px)";
+      if(Math.abs(tx-rx)+Math.abs(ty-ry)>.4) requestAnimationFrame(tick); else run=false; }
+  }
+
+  /* ---------- hero stars + parallax ---------- */
+  var cv=$("#stars"), cx=cv.getContext("2d"), stars=[], W=0, H=0;
+  function size(){
+    var r=cv.getBoundingClientRect(); if(!r.width) return; var d=Math.min(window.devicePixelRatio||1,2);
+    W=r.width; H=r.height; cv.width=W*d; cv.height=H*d; cx.setTransform(d,0,0,d,0,0);
+    stars=[]; var n=Math.round(W*H/5200);
+    for(var i=0;i<n;i++) stars.push({x:Math.random()*W,y:Math.random()*H*.62,r:Math.random()*1.4+.3,p:Math.random()*6.28,s:Math.random()*1.5+.5});
+  }
+  function draw(t){
+    if(current==="home" && W){
+      cx.clearRect(0,0,W,H);
+      for(var i=0;i<stars.length;i++){ var s=stars[i], a=reduce?.8:.45+.45*Math.sin(t/700*s.s+s.p);
+        cx.globalAlpha=Math.max(0,a*(1-s.y/(H*.7))); cx.fillStyle="#fff4e4"; cx.beginPath(); cx.arc(s.x,s.y,s.r,0,6.283); cx.fill(); }
+      cx.globalAlpha=1;
+    }
+    if(!reduce) requestAnimationFrame(draw);
+  }
+  size(); draw(0); window.addEventListener("resize",function(){ size(); if(reduce) draw(0); });
+  var astro=$("#astro"), rob=$("#robotHero"), raf=0;
+  if(!reduce && window.matchMedia("(pointer:fine)").matches){
+    window.addEventListener("mousemove",function(e){
+      if(current!=="home"||raf||window.scrollY>window.innerHeight) return;
+      raf=requestAnimationFrame(function(){ raf=0;
+        var mx=e.clientX/window.innerWidth-.5, my=e.clientY/window.innerHeight-.5;
+        astro.style.translate=(mx*-28)+"px "+(my*-18)+"px"; rob.style.translate=(mx*22)+"px "+(my*10)+"px"; });
+    });
+  }
+
+  /* ---------- youtube card ---------- */
+  var yt=$("#yt"), cap=$("#ytcap");
+  if(YOUTUBE_URL){ yt.href=YOUTUBE_URL; yt.removeAttribute("aria-disabled"); cap.textContent="ดูคลิปแนะนำโครงงานบน YouTube"; }
+  else yt.addEventListener("click",function(e){ e.preventDefault(); });
+
+  /* ---------- นับเลขขึ้น ---------- */
+  function countUp(root){
+    $$("[data-count]",root).forEach(function(n){ if(n.dataset.done) return; n.dataset.done=1;
+      var to=parseFloat(n.dataset.count), dec=+n.dataset.dec||0, t0=null, dur=reduce?1:1400;
+      function st(t){ if(!t0) t0=t; var k=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-k,3); n.textContent=(to*e).toFixed(dec); if(k<1) requestAnimationFrame(st); }
+      requestAnimationFrame(st); });
+  }
+  /* ---------- รูปนักเรียน 22 คน ---------- */
+  $$(".kids").forEach(function(k){ for(var i=0;i<22;i++){ var d=el("span","kid"+(i<20?" ok":"")); d.style.transitionDelay=(i*45)+"ms"; k.appendChild(d); } });
+  /* ---------- slider ภาพหุ่นยนต์ ---------- */
+  $$(".slider").forEach(function(sl){
+    var tr=$(".sl-track",sl), items=$$(".sl-item",sl), dots=$(".sl-dots",sl), idx=0, timer=null, hold=false;
+    items.forEach(function(it,i){ var d=el("button"); d.type="button"; d.setAttribute("role","tab"); d.setAttribute("aria-label","ภาพที่ "+(i+1)); d.addEventListener("click",function(){ to(i); stop(); }); dots.appendChild(d); });
+    function mark(){ $$("button",dots).forEach(function(d,i){ d.setAttribute("aria-selected",i===idx?"true":"false"); }); }
+    function to(i){ idx=(i+items.length)%items.length; tr.scrollTo({left:items[idx].offsetLeft-tr.offsetLeft,behavior:reduce?"auto":"smooth"}); mark(); }
+    tr.addEventListener("scroll",function(){ var i=Math.round(tr.scrollLeft/tr.clientWidth); if(i!==idx){ idx=i; mark(); } },{passive:true});
+    $(".prev",sl).addEventListener("click",function(){ to(idx-1); stop(); });
+    $(".next",sl).addEventListener("click",function(){ to(idx+1); stop(); });
+    tr.addEventListener("keydown",function(e){ if(e.key==="ArrowRight"){ e.preventDefault(); to(idx+1); stop(); } if(e.key==="ArrowLeft"){ e.preventDefault(); to(idx-1); stop(); } });
+    function stop(){ hold=true; }
+    sl.addEventListener("mouseenter",function(){ hold=true; }); sl.addEventListener("mouseleave",function(){ hold=false; });
+    sl.addEventListener("touchstart",function(){ hold=true; },{passive:true});
+    if(!reduce) timer=setInterval(function(){ if(!hold && !sl.closest("[hidden]") && tr.clientWidth) to(idx+1); },4500);
+    mark();
+  });
+
+  /* ---------- reveal-on-scroll (หน้าท้องฟ้า) ---------- */
+  if("IntersectionObserver" in window && !reduce){
+    document.documentElement.classList.add("rv-on");
+    var rvo=new IntersectionObserver(function(es){ es.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add("in"); countUp(en.target); rvo.unobserve(en.target); } }); },{rootMargin:"0px 0px -8% 0px"});
+    $$(".chap.themed .box,.chap.themed .slider,.chap.themed .browser,.chap.themed .obj li,.chap.themed .plan,.chap.themed .tbl-wrap,.chap.themed .fold,.chap.themed .pn-h,.chap.themed .ih").forEach(function(e,i){ e.classList.add("rv"); e.style.transitionDelay=((i%4)*70)+"ms"; rvo.observe(e); });
+    setTimeout(function(){ $$(".rv").forEach(function(e){ e.style.transitionDelay=""; }); },4000);
+  } else { $$(".chap.themed .box").forEach(function(e){ e.classList.add("rv","in"); }); countUp(document); }
+
+  /* ---------- พื้นหลังขยับหน้าแรก ---------- */
+  (function(){ var ct=$(".content"); if(!ct) return; var fx=el("div","homefx"); fx.setAttribute("aria-hidden","true");
+    [["#ffd479","540px","4%","-6%","28s"],["#ffb3a4","460px","60%","18%","32s"],["#9fe3f5","500px","10%","52%","30s"],["#d9c2ff","420px","66%","72%","26s"]].forEach(function(b){ var d=el("span","blob"); d.style.background=b[0]; d.style.setProperty("--s",b[1]); d.style.left=b[2]; d.style.top=b[3]; d.style.setProperty("--d",b[4]); fx.appendChild(d); });
+    var sy=["+","○","△","□","</>","✦","⚙","{ }"], co=["#ffb703","#ff6b53","#00b4d8","#8b5cf6","#10b981"];
+    for(var i=0;i<26;i++){ var t=el("span","sh",sy[i%sy.length]); t.style.left=((i*37+5)%96)+"%"; t.style.top=((i*29+3)%98)+"%"; t.style.fontSize=(18+(i%4)*10)+"px"; t.style.setProperty("--c",co[i%co.length]); t.style.setProperty("--d",(10+(i*3)%10)+"s"); t.style.animationDelay=(-(i%8))+"s"; fx.appendChild(t); }
+    ct.insertBefore(fx,ct.firstChild); })();
+
+  /* ---------- ดาวและหินในโซนดาวเคราะห์ ---------- */
+  (function(){ var fx=$(".pz-fx"); if(!fx) return;
+    for(var i=0;i<34;i++){ var t=el("i","st"); t.style.left=((i*43+7)%97)+"%"; t.style.top=((i*31+3)%70)+"%"; t.style.setProperty("--s",(5+(i%4)*3)+"px"); t.style.setProperty("--d",(2+(i%5)*.9)+"s"); t.style.animationDelay=(-(i%6)*.5)+"s"; fx.appendChild(t); }
+    for(var j=0;j<10;j++){ var r=el("i","rk"); r.style.left=((j*59+11)%94)+"%"; r.style.top=(15+((j*37)%75))+"%"; r.style.setProperty("--s",(10+(j%4)*8)+"px"); r.style.setProperty("--d",(9+(j%5)*3)+"s"); fx.appendChild(r); }
+  })();
+
+  /* ---------- ไม่ตัดคำที่ควรอยู่ติดกัน ----------
+     เพิ่มคำที่ต้องการให้อยู่บรรทัดเดียวกันได้ที่ NB_WORDS */
+  var NB_WORDS=["โรงเรียนบ้านแหลมแท่น","บ้านแหลมแท่น","ประถมศึกษาปีที่","ประถมศึกษา","หุ่นยนต์ช่วยสอน","หุ่นยนต์","การเขียนโปรแกรม","เขียนโปรแกรม","โปรแกรม","การคิดเชิงคำนวณ","เชิงคำนวณ","คำนวณ","วิทยาการคำนวณ","ผู้เชี่ยวชาญ","ความพึงพอใจ","พึงพอใจ","กลุ่มตัวอย่าง","สถานการณ์จำลอง","สถานการณ์","แอนิเมชัน","วิดีโอ","วีดิทัศน์","เซนเซอร์","อัลตราโซนิก","อินฟราเรด","เซอร์โว","มอเตอร์เกียร์","มอเตอร์","ไมโครคอนโทรลเลอร์","เว็บไซต์","ภาคผนวก","คณะผู้จัดทำ","อาจารย์ที่ปรึกษา","ผู้ช่วยศาสตราจารย์","ประสิทธิภาพ","กิจกรรม","ภารกิจ","ใบงาน","ใบกิจกรรม","นวัตกรรม","รูปแบบการจัดการเรียนรู้","การจัดการเรียนรู้","การเรียนรู้","ผู้เรียน","นักเรียน","ผู้สอน","ข้อเสนอแนะ","อภิปรายผล","วัตถุประสงค์","ความต้องการ","มหาวิทยาลัยบูรพา","คณะศึกษาศาสตร์","ส่วนเบี่ยงเบนมาตรฐาน","ค่าเฉลี่ย","นัยสำคัญทางสถิติ","ดัชนีความสอดคล้อง","ความตรงเชิงเนื้อหา","สร้างสรรค์","ออกแบบ","ตรวจสอบ","อัตโนมัติ","สิ่งกีดขวาง","หลบหลีก","เคลื่อนที่","ตามเส้น","ดาวน์โหลด","รังถ่าน","แบตเตอรี่","อวกาศ","ผจญภัย","ลงมือปฏิบัติ","แรงจูงใจ","ทักษะ","งบประมาณ","ทรัพยากร","สตอรี่บอร์ด","คอมพิวเตอร์","บรรณานุกรม","บทคัดย่อ","กิตติกรรมประกาศ"];
+  (function(){
+    var esc=function(t){ return t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); };
+    var words=NB_WORDS.slice().sort(function(a,b){ return b.length-a.length; }).map(esc).join("|");
+    var re=new RegExp("((?:บทที่|ปีที่|ตอนที่|ภาพที่|ขั้นที่|ส่วนที่|กลุ่มที่|ระดับที่|ข้อ|ป\\.)\\s?[\\d/]+(?:\\s?-\\s?\\d+)?|\\d+(?:\\.\\d+)?\\s?(?:คน|ท่าน|คะแนน|ข้อ|ด้าน|ระดับ|ขั้นตอน|ขั้น|หน้า|ห้องเรียน|บท|นาที|%)|\\d+\\s?-\\s?\\d+|Level\\s?\\d|"+words+")","g");
+    var skip={SCRIPT:1,STYLE:1,TEXTAREA:1,INPUT:1,OPTION:1,TITLE:1,svg:1,CANVAS:1};
+    function walk(node){
+      if(node.nodeType===1){ if(skip[node.tagName]||node.classList.contains("nb")) return; Array.prototype.slice.call(node.childNodes).forEach(walk); return; }
+      if(node.nodeType!==3||!/[฀-๿\d]/.test(node.nodeValue)) return;
+      var t=node.nodeValue; re.lastIndex=0; if(!re.test(t)) return; re.lastIndex=0;
+      var frag=document.createDocumentFragment(), last=0, m;
+      while((m=re.exec(t))){ if(m.index>last) frag.appendChild(document.createTextNode(t.slice(last,m.index))); var sp=document.createElement("span"); sp.className="nb"; sp.textContent=m[0]; frag.appendChild(sp); last=m.index+m[0].length; }
+      if(last<t.length) frag.appendChild(document.createTextNode(t.slice(last)));
+      var par=node.parentNode, d=getComputedStyle(par).display;
+      if(/flex|grid/.test(d)){ var wrap=document.createElement("span"); wrap.appendChild(frag); frag=wrap; }
+      par.replaceChild(frag,node);
+    }
+    walk(document.querySelector("main")); walk(document.querySelector("footer"));
+  })();
+
+  /* ---------- flipbook เปิดเล่มทีละหน้า ---------- */
+  var flips={};
+  $$(".flip[data-dir]").forEach(function(f){
+    var dir=f.dataset.dir, n=+f.dataset.n, img=$(".fl-page img",f), rng=$(".fl-range",f), inp=$(".fl-in",f), cur=0, toc=$$(".fl-toc [data-page]",f);
+    rng.max=n; inp.max=n; $(".fl-tot",f).textContent=n;
+    function src(i){ return dir+"/"+String(i).padStart(3,"0")+".webp"; }
+    function pre(i){ if(i>=1&&i<=n){ var im=new Image(); im.src=src(i); } }
+    function show(i,anim){
+      i=Math.max(1,Math.min(n,i|0)); if(i===cur) return; var dirn=i>cur?"n":"p"; cur=i;
+      img.src=src(i); img.alt="หน้า "+i+" จาก "+n;
+      if(anim!==false && !reduce){ img.classList.remove("turn-n","turn-p"); void img.offsetWidth; img.classList.add("turn-"+dirn); }
+      rng.value=i; inp.value=i; $(".prev",f).disabled=i<=1; $(".next",f).disabled=i>=n;
+      var act=null; toc.forEach(function(b){ if(+b.dataset.page<=i) act=b; }); toc.forEach(function(b){ b.setAttribute("aria-current",b===act?"true":"false"); });
+      if(act && act.parentNode.scrollWidth>act.parentNode.clientWidth) act.parentNode.scrollLeft=act.offsetLeft-40;
+      pre(i+1); pre(i+2); pre(i-1);
+    }
+    img.addEventListener("load",function(){ if(img.naturalWidth) $(".fl-page",f).style.setProperty("--ar",(img.naturalWidth/img.naturalHeight).toFixed(4)); },{once:true});
+    $(".prev",f).addEventListener("click",function(){ show(cur-1); blip(560,.05); });
+    $(".next",f).addEventListener("click",function(){ show(cur+1); blip(660,.05); });
+    $$(".fl-step",f).forEach(function(b){ b.addEventListener("click",function(){ show(cur+(+b.dataset.step)); }); });
+    rng.addEventListener("input",function(){ show(+rng.value,false); });
+    inp.addEventListener("change",function(){ show(+inp.value); });
+    toc.forEach(function(b){ b.addEventListener("click",function(){ show(+b.dataset.page); }); });
+    f.addEventListener("keydown",function(e){ if(e.target.tagName==="INPUT") return; if(e.key==="ArrowRight"){ e.preventDefault(); show(cur+1); } if(e.key==="ArrowLeft"){ e.preventDefault(); show(cur-1); } });
+    var st=$(".fl-stage",f), x0=null;
+    st.addEventListener("pointerdown",function(e){ x0=e.clientX; });
+    st.addEventListener("pointerup",function(e){ if(x0===null) return; var dx=e.clientX-x0; x0=null; if(Math.abs(dx)>45) show(cur+(dx<0?1:-1)); else if(Math.abs(dx)<6 && e.target===img && !document.fullscreenElement){ lbOp=f; lbImg.src=img.src; lbImg.alt=img.alt; lb.hidden=false; $("#lbClose").focus(); } });
+    img.style.cursor="zoom-in";
+    flips[f.id]={show:show,el:f}; show(1,false);
+  });
+  document.addEventListener("click",function(e){ var b=e.target.closest("[data-flip][data-page]"); if(!b) return; var fl=flips[b.dataset.flip]; if(!fl) return; fl.show(+b.dataset.page); fl.el.scrollIntoView({behavior:reduce?"auto":"smooth",block:"start"}); });
+
+  /* ---------- lightbox ---------- */
+  var lb=$("#lb"), lbImg=$("#lbImg"), lbOp=null;
+  function openLb(b){ lbOp=b; lbImg.src=b.dataset.zoom; lbImg.alt=b.dataset.alt||""; lb.hidden=false; blip(750,.08); $("#lbClose").focus(); }
+  function closeLb(){ lb.hidden=true; lbImg.removeAttribute("src"); if(lbOp) lbOp.focus(); }
+  $$("[data-zoom]").forEach(function(b){ b.addEventListener("click",function(){ openLb(b); }); });
+  $("#lbClose").addEventListener("click",closeLb);
+  lb.addEventListener("click",function(e){ if(e.target===lb) closeLb(); });
+
+  /* ---------- 3D model: start when visible, pause when hidden ---------- */
+  var viewer=$("#viewer"), modelStarted=false, io=null;
+  function startModel(){
+    if(modelStarted) return; modelStarted=true;
+    var go3d=function(){
+      try{
+        if(typeof THREE==="undefined"||!THREE.OrbitControls) throw new Error("three");
+        window.__initRobocartModel();
+        $("#vLoading").hidden=true;
+        var rc=window.__rc;
+                rc.controls.enableZoom=false;           // กันเลื่อนหน้าแล้วโมเดลซูมโดยไม่ตั้งใจ
+        var cv3=rc.renderer.domElement;
+        cv3.addEventListener("pointerdown",function(){ rc.controls.enableZoom=true; });
+        cv3.addEventListener("pointerleave",function(){ rc.controls.enableZoom=false; });
+      }catch(err){
+        modelStarted=false; $("#vLoading").hidden=false; $("#vLoading").textContent="โหลดโมเดล 3 มิติไม่สำเร็จ ลองรีเฟรชหน้าอีกครั้ง";
+      }
+    };
+    if(document.fonts&&document.fonts.load){ Promise.all([document.fonts.load("600 20px Prompt"),document.fonts.load("700 20px Prompt")]).then(go3d,go3d); } else go3d();
+  }
+  function watchModel(){
+    if(io) io.disconnect(); window.__rcActive=false;
+    if(current!=="home") return;
+    if(!("IntersectionObserver" in window)){ window.__rcActive=true; startModel(); return; }
+    io=new IntersectionObserver(function(es){
+      es.forEach(function(en){ window.__rcActive=en.isIntersecting; if(en.isIntersecting) startModel(); });
+    },{rootMargin:"200px"});
+    io.observe(viewer);
+  }
+  var ex=$("#btn-expand");
+  function setExpanded(on){
+    viewer.classList.toggle("expanded",on); ex.setAttribute("aria-pressed",on?"true":"false"); ex.textContent=on?"ย่อกลับ":"เต็มจอ";
+    document.body.style.overflow=on?"hidden":""; setTimeout(function(){ window.dispatchEvent(new Event("resize")); },60);
+  }
+  ex.addEventListener("click",function(){ setExpanded(!viewer.classList.contains("expanded")); });
+
+  document.addEventListener("keydown",function(e){
+    if(e.key!=="Escape") return;
+    if(!lb.hidden) closeLb(); else if(viewer.classList.contains("expanded")) setExpanded(false);
+  });
+
+  var h0=(location.hash||"").replace("#","");
+  go(h0||"home",true);
+})();
+</script>
+
+</body></html>
